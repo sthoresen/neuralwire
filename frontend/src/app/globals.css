@@ -1,0 +1,58 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,300&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Design tokens — dark (default) ──────────────────────────────────── */
+:root {
+  --sn-bg:             #0a0a0b;
+  --sn-surface:        #111113;
+  --sn-surface-2:      #18181b;
+  --sn-surface-3:      #1f1f23;
+  --sn-border:         #27272a;
+  --sn-border-subtle:  #1e1e21;
+  --sn-text:           #fafafa;
+  --sn-text-secondary: #a1a1aa;
+  --sn-text-tertiary:  #71717a;
+  --sn-red:            #ef4444;
+  --sn-red-dim:        rgba(239,68,68,0.12);
+  --sn-amber:          #f59e0b;
+  --sn-accent:         #76b900;
+  --sn-accent-dim:     rgba(118,185,0,0.10);
+  --sn-accent-glow:    rgba(118,185,0,0.05);
+  --sn-radius:         12px;
+  --sn-radius-sm:      8px;
+  --sn-radius-xs:      6px;
+}
+
+/* ── Design tokens — light ────────────────────────────────────────────── */
+[data-theme="light"] {
+  --sn-bg:             #f5f5f3;
+  --sn-surface:        #ffffff;
+  --sn-surface-2:      #ededeb;
+  --sn-surface-3:      #e0e0dc;
+  --sn-border:         #d1d1cd;
+  --sn-border-subtle:  #e0e0dc;
+  --sn-text:           #1a1a1a;
+  --sn-text-secondary: #5c5c5c;
+  --sn-text-tertiary:  #8c8c8c;
+  --sn-red:            #dc2626;
+  --sn-red-dim:        rgba(220,38,38,0.08);
+  --sn-amber:          #d97706;
+  --sn-accent:         #4d7a00;
+  --sn-accent-dim:     rgba(77,122,0,0.10);
+  --sn-accent-glow:    rgba(77,122,0,0.06);
+}
+
+html, body {
+  background: var(--sn-bg);
+  color: var(--sn-text);
+  font-family: 'DM Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--sn-border); border-radius: 3px; }

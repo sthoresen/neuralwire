@@ -1,0 +1,36 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+.env.*
+
+# ── Databases ─────────────────────────────────────────────────────────────────
+*.db
+*.db.bak
+*.sqlite
+
+# ── Notebooks ─────────────────────────────────────────────────────────────────
+**/*.ipynb
+
+# ── Node / Next.js ────────────────────────────────────────────────────────────
+frontend/node_modules/
+frontend/.next/
+frontend/*.tsbuildinfo
+
+# ── Directories ───────────────────────────────────────────────────────────────
+_archive/
+instance/
+agentic_data/
+nvidia ai data/
+New folder/
+
+# ── Scratch / temp files ──────────────────────────────────────────────────────
+python_backend/temp_*.txt
+
+# ── One-off scripts ───────────────────────────────────────────────────────────
+python_backend/test_db_connection.py
+python_backend/event_pipeline.py
+
+# ── Tool / IDE config ─────────────────────────────────────────────────────────
+.claude/settings.local.json
