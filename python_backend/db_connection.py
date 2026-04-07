@@ -3,6 +3,9 @@ import os
 import psycopg2
 import psycopg2.extras
 
+print("DEBUG DATABASE_URL_PRIVATE:", os.environ.get("DATABASE_URL_PRIVATE"))
+print("DEBUG DATABASE_URL:", os.environ.get("DATABASE_URL"))
+
 DSN = (
     os.environ.get("DATABASE_URL_PRIVATE")
     or os.environ.get("DATABASE_URL")
