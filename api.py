@@ -15,6 +15,7 @@ import ticker_colors as tc
 import ticker_classification as tclass
 
 # ── Init ───────────────────────────────────────────────────────────────────
+database.init_db()
 database.init_ticker_artefacts_table()
 database.migrate_add_earnings_tables()
 tc.init()
