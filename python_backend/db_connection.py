@@ -3,9 +3,10 @@ import os
 import psycopg2
 import psycopg2.extras
 
-DSN = os.environ.get(
-    "DATABASE_URL_PRIVATE",
-    "host=localhost port=5432 dbname=stocknews user=stocknews password=stocknews",
+DSN = (
+    os.environ.get("DATABASE_URL_PRIVATE")
+    or os.environ.get("DATABASE_URL")
+    or "host=localhost port=5432 dbname=stocknews user=stocknews password=stocknews"
 )
 
 
