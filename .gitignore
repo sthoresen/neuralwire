@@ -9,6 +9,7 @@ __pycache__/
 *.db
 *.db.bak
 *.sqlite
+*.sql
 
 # ── Notebooks ─────────────────────────────────────────────────────────────────
 **/*.ipynb
@@ -17,6 +18,7 @@ __pycache__/
 frontend/node_modules/
 frontend/.next/
 frontend/*.tsbuildinfo
+frontend/.env.local
 
 # ── Directories ───────────────────────────────────────────────────────────────
 _archive/
@@ -34,3 +36,4 @@ python_backend/event_pipeline.py
 
 # ── Tool / IDE config ─────────────────────────────────────────────────────────
 .claude/settings.local.json
+CLAUDE.md

@@ -1,0 +1,31 @@
+# railway.toml — NeuralWire service configuration
+# Docs: docs.railway.com/reference/config-as-code
+#
+# This file configures the PRIMARY web service only.
+# Each cron job must be a separate Railway service pointing at this repo,
+# with the same env vars (DATABASE_URL, OPENROUTER_KEY, ALPHA_VANTAGE_API_KEY,
+# ALPACA_KEY, ALPACA_SECRET, DEFEATBETA_API_KEY …).
+#
+# ── Cron services: dashboard settings ─────────────────────────────────────────
+#
+#  fetch-news          →  python run_fetch.py
+#                         0 */2 * * *        (every 2 h)
+#
+#  analyze-articles    →  python run_analysis.py
+#                         */30 * * * *       (every 30 min)
+#
+#  sync-prices         →  python python_backend/sync_prices.py
+#                         0 22 * * 1-5       (22:00 UTC Mon–Fri = ~6 PM ET, after NYSE close)
+#
+#  ingest-earnings     →  python run_earnings.py
+#                         0 6 * * *          (06:00 UTC daily — defeatbeta updates overnight)
+#
+# ── Web service ───────────────────────────────────────────────────────────────
+
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "uvicorn api:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/tickers"
+healthcheckTimeout = 30
