@@ -2,12 +2,16 @@ import os
 
 import psycopg2
 import psycopg2.extras
+from dotenv import load_dotenv
+
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 DSN = (
-    os.environ.get("DATABASE_URL_PRIVATE")
-    or os.environ.get("DATABASE_URL")
+    os.environ.get("DATABASE_URL")
     or "host=localhost port=5432 dbname=stocknews user=stocknews password=stocknews"
 )
+
+print(f'DSN loaded = {DSN}')
 
 
 def get_conn(dict_cursor: bool = False):
