@@ -57,6 +57,6 @@ if __name__ == "__main__":
 
     print("[scheduler] Started. Jobs scheduled:", flush=True)
     for job in scheduler.get_jobs():
-        print(f"  {job.id}: next run {job.next_run_time}", flush=True)
+        print(f"  {job.id}", flush=True)
 
     scheduler.start()
