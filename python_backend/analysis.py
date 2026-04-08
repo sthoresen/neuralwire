@@ -405,7 +405,7 @@ def analyze_article_impact(article):
         )
         
         try:
-            res_text, model_used = llm_manager.call_with_fallback(prompt)
+            res_text, model_used = llm_manager.call(prompt, tier="economy", max_tier="standard")
             data = utils.clean_json_response(res_text)
             # Handle case where LLM returns a LIST of objects vs a single object
             if isinstance(data, list):
