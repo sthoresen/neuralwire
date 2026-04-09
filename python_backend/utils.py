@@ -98,8 +98,8 @@ _DISPLAY_MAP = {
     "BRKA": "BRK.A",
 }
 _ALPACA_MAP = {
-    "BRKB": "BRK/B",
-    "BRKA": "BRK/A",
+    "BRKB": "BRK.B",
+    "BRKA": "BRK.A",
 }
 _YFINANCE_MAP = {
     "BRKB": "BRK-B",
