@@ -35,7 +35,7 @@ def backfill_ticker(ticker: str, days: int):
             print(f"  [{ticker}] Resuming from {start}")
 
     print(f"  [{ticker}] Fetching 1-min bars {start} → {end} ...")
-    bars = alpaca.get_bars(utils.to_alpaca_ticker(ticker), "1Min", start, end, limit=100_000)
+    bars = alpaca.get_bars(utils.to_alpaca_ticker(ticker), "1Min", start, end)
 
     if not bars:
         print(f"  [{ticker}] No bars returned.")

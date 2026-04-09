@@ -21,7 +21,7 @@ def _headers() -> dict:
 
 
 def get_bars(ticker: str, timeframe: str, start: str, end: str,
-             feed: str = "iex", limit: int = 10000) -> list[dict]:
+             feed: str = "iex", limit: int = 1000) -> list[dict]:
     """
     Fetch OHLCV bars for a single ticker. Handles pagination automatically.
 

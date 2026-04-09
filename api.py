@@ -125,7 +125,7 @@ def _refresh_intraday(db_ticker: str):
             start = str(date.today())
         end = str(date.today())
 
-        bars = alpaca.get_bars(utils.to_alpaca_ticker(db_ticker), "1Min", start, end, limit=100_000)
+        bars = alpaca.get_bars(utils.to_alpaca_ticker(db_ticker), "1Min", start, end)
         if not bars:
             return
 
