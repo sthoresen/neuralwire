@@ -37,7 +37,7 @@ def job_earnings():
     run_script(os.path.join(BASE_DIR, "run_earnings.py"))
 
 def job_sync_prices():
-    run_script(os.path.join(BASE_DIR, "run_sync_prices.py"))
+    run_script(os.path.join(BASE_DIR, "run_sync_daily_prices.py"))
 
 
 if __name__ == "__main__":

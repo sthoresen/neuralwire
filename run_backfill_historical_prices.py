@@ -1,0 +1,64 @@
+"""
+Runner: backfill 5 years of daily OHLCV bars from Alpaca for all active tickers.
+
+This is a one-time / on-demand script — run it when a new ticker is added.
+Safe to re-run: resumes from the last stored date, skips tickers already up to date.
+
+Usage:
+    python run_backfill_historical_prices.py
+    python run_backfill_historical_prices.py --tickers AAPL TSLA   # specific tickers only
+"""
+import os
+import sys
+import time
+import argparse
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "python_backend"))
+
+from db_connection import get_conn
+import market_data
+import backfill_prices
+
+SLEEP_BETWEEN = 1.0
+
+
+def get_active_tickers() -> list[str]:
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute("""
+            SELECT DISTINCT ticker FROM ticker_artefacts
+            WHERE artefact_type = 'header_description'
+            ORDER BY ticker
+        """)
+        rows = c.fetchall()
+        conn.close()
+        return [r[0] for r in rows] if rows else ["NVDA"]
+    except Exception as e:
+        print(f"WARNING: could not query tickers ({e}), falling back to NVDA")
+        return ["NVDA"]
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Backfill historical prices for all active tickers")
+    parser.add_argument("--tickers", nargs="+", default=None, help="Override tickers (default: all active)")
+    args = parser.parse_args()
+
+    tickers = args.tickers if args.tickers else get_active_tickers()
+    print(f"=== run_backfill_historical_prices: {len(tickers)} ticker(s): {tickers} ===")
+
+    market_data.init_db()
+
+    from datetime import date, timedelta
+    start = str(date.today() - timedelta(days=365 * 5))
+    end = str(date.today())
+
+    for ticker in tickers:
+        try:
+            backfill_prices.backfill_ticker(ticker, start, end)
+        except Exception as e:
+            print(f"  [{ticker}] ERROR: {e}")
+        time.sleep(SLEEP_BETWEEN)
+
+    print("=== Done ===")
+    market_data.status()
