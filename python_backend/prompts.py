@@ -99,7 +99,7 @@ Input Text:
 
 Output JSON:
 [
-  {
+  {{
     "ticker": "MSFT",
     "impact_headline": "Microsoft partners with OpenAI for $100B 'Stargate' AI supercomputer",
     "summary": "Microsoft is planning a massive data center project to house a supercomputer with millions of specialized AI chips to power OpenAI's next generation of models.",
@@ -107,7 +107,7 @@ Output JSON:
     "breaking_news_score": 95,
     "importance_score": 90,
     "_reasoning": "Primary subject of a major capital expenditure announcement. Hard dollar figures provided."
-  }
+  }}
 ]
 (Notice: AMZN excluded as it was used only for industry context.)
 
@@ -116,7 +116,7 @@ Input Text:
 
 Output JSON:
 [
-  {
+  {{
     "ticker": "DIS",
     "impact_headline": "Disney acquires $1.5B stake in Epic Games amid mixed Q3 earnings",
     "summary": "Disney is pivoting toward gaming with a major investment in the Fortnite creator while managing a quarter where bottom-line earnings beat expectations despite soft revenue.",
@@ -124,7 +124,7 @@ Output JSON:
     "breaking_news_score": 95,
     "importance_score": 85,
     "_reasoning": "Main subject. Hard news regarding M&A and earnings report."
-  }
+  }}
 ]
 (Notice: NFLX excluded. Being 'the leader in streaming minutes' is a general benchmark, not breaking news.)
 
