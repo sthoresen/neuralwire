@@ -71,8 +71,16 @@ SCORING RUBRIC (STRICT):
 
 ---
 
-The summary is a summary of the articles main points
-The impact headline is an headline that you choose, do explain why the article is relevant for the ticker. The company should be mentioned.
+REQUIRED JSON STRUCTURE:
+You must return a JSON list of objects. Every object MUST include:
+- "ticker": The stock symbol.
+- "impact_headline": The impact headline is an headline that you choose, to explain why the article is relevant for the ticker. The company name should be mentioned.
+- "summary": A summary of the main points (Required).
+- "relevance_score": (0-100)
+- "breaking_news_score": (0-100)
+- "importance_score": (0-100)
+- "_reasoning": Brief internal logic.
+
 
 CRITICAL FILTERING RULES (READ CAREFULLY):
 1. **The "Who Cares" Test:** Before adding a ticker to the JSON, ask: "Does this article provide NEW information specifically about this company?"
@@ -84,46 +92,46 @@ CRITICAL FILTERING RULES (READ CAREFULLY):
 
 ---
 
-FEW-SHOT EXAMPLES (Ground Truth):
+FEW-SHOT EXAMPLES:
 
 Input Text:
-"Microsoft (MSFT) announced a massive $10B investment in AI infrastructure today. This move places them well ahead of competitors like Google (GOOGL) and Amazon (AMZN), who are struggling to keep up with infrastructure demands."
+"Microsoft (MSFT) and OpenAI announced a $100B supercomputer project called 'Stargate'. While Amazon (AMZN) is also investing in chips, this specific project marks a new era for Microsoft's lead."
 
 Output JSON:
 [
-  {{
+  {
     "ticker": "MSFT",
-    "impact_headline": "Announces $10B AI infrastructure investment",
+    "impact_headline": "Microsoft partners with OpenAI for $100B 'Stargate' AI supercomputer",
+    "summary": "Microsoft is planning a massive data center project to house a supercomputer with millions of specialized AI chips to power OpenAI's next generation of models.",
     "relevance_score": 100,
-    "breaking_news_score": 90,
-    "importance_score": 85,
-    "_reasoning": "Main subject. Hard money figure announced."
-  }}
+    "breaking_news_score": 95,
+    "importance_score": 90,
+    "_reasoning": "Primary subject of a major capital expenditure announcement. Hard dollar figures provided."
+  }
 ]
-(Notice: GOOGL and AMZN were excluded because they were just comparison benchmarks.)
+(Notice: AMZN excluded as it was used only for industry context.)
 
 Input Text:
-"Markets rallied today. Nvidia (NVDA) led the charge, gaining 5%, while Apple (AAPL) remained flat. Investors are waiting for CPI data."
+"In a blockbuster deal, Disney (DIS) is acquiring a majority stake in Epic Games for $1.5B. Simultaneously, Disney reported earnings where they beat on EPS but missed on revenue. Analysts also noted that Netflix (NFLX) remains the leader in streaming minutes."
 
 Output JSON:
 [
-  {{
-    "ticker": "NVDA",
-    "impact_headline": "Stock rallies 5%, leading market gains",
-    "summary": "Microsoft (MSFT) announced a massive $10B investment in AI infrastructure. They are further expanding their lead over peers.",
-    "relevance_score": 60,
-    "breaking_news_score": 50,
-    "importance_score": 40,
-    "_reasoning": "Specific price action mentioned as the market leader."
-  }}
+  {
+    "ticker": "DIS",
+    "impact_headline": "Disney acquires $1.5B stake in Epic Games amid mixed Q3 earnings",
+    "summary": "Disney is pivoting toward gaming with a major investment in the Fortnite creator while managing a quarter where bottom-line earnings beat expectations despite soft revenue.",
+    "relevance_score": 100,
+    "breaking_news_score": 95,
+    "importance_score": 85,
+    "_reasoning": "Main subject. Hard news regarding M&A and earnings report."
+  }
 ]
-(Notice: AAPL excluded. "Remained flat" is not significant enough news for a standalone alert.)
+(Notice: NFLX excluded. Being 'the leader in streaming minutes' is a general benchmark, not breaking news.)
 
 Input Text:
-"Here are 3 stocks to watch: Palantir, Tesla, and SoFi. We believe these companies have good charts."
+"Markets are choppy. Investors are looking at names like Palantir and Sofi, but no major moves have been made."
 
-Output JSON:
-[]
+Output JSON: []
 (Notice: Returns empty list. This is pure fluff/listicle with no hard news.)
 
 ---
@@ -294,14 +302,12 @@ SCORING RUBRIC (STRICT):
 
 Your job is to rate an article in relevance to a given ticker, and to produce a summary and an impact headline.
 Only do work for this ticker you are given. Other tickers are handled by other workers.
-The summary is a summary of the articles main points
-The impact headline is an headline that you choose, to explain why the article is relevant for the ticker. The company name should be mentioned.
 
 ### OUTPUT STRUCTURE (MANDATORY)
 Return ONLY a JSON list of objects. Every object MUST contain these keys:
 - "ticker": The stock symbol.
-- "impact_headline": A custom headline mentioning the company.
-- "summary": A 1-2 sentence summary of the main points (Required).
+- "impact_headline": The impact headline is an headline that you choose, to explain why the article is relevant for the ticker. The company name should be mentioned.
+- "summary": A summary of the main points (Required).
 - "relevance_score": (0-100)
 - "breaking_news_score": (0-100)
 - "importance_score": (0-100)
