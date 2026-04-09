@@ -9,4 +9,5 @@ yfinance==1.2.0
 websockets==16.0
 python-dotenv==1.0.1
 apscheduler==3.10.4
+alpaca-trade-api==3.2.0
 defeatbeta-api==0.0.48
