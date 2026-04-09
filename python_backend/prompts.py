@@ -295,8 +295,17 @@ SCORING RUBRIC (STRICT):
 Your job is to rate an article in relevance to a given ticker, and to produce a summary and an impact headline.
 Only do work for this ticker you are given. Other tickers are handled by other workers.
 The summary is a summary of the articles main points
-The impact headline is an headline that you choose, do explain why the article is relevant for the ticker. The company should be mentioned.
+The impact headline is an headline that you choose, to explain why the article is relevant for the ticker. The company name should be mentioned.
 
+### OUTPUT STRUCTURE (MANDATORY)
+Return ONLY a JSON list of objects. Every object MUST contain these keys:
+- "ticker": The stock symbol.
+- "impact_headline": A custom headline mentioning the company.
+- "summary": A 1-2 sentence summary of the main points (Required).
+- "relevance_score": (0-100)
+- "breaking_news_score": (0-100)
+- "importance_score": (0-100)
+- "_reasoning": Brief internal logic.
 
 CRITICAL FILTERING RULES (READ CAREFULLY):
 1. **The "Who Cares" Test:** Before adding anything to the JSON, ask: "Does this article provide NEW information specifically about this company?"
@@ -308,51 +317,34 @@ CRITICAL FILTERING RULES (READ CAREFULLY):
 
 ---
 
-FEW-SHOT EXAMPLES (Ground Truth):
+### EXAMPLES
 
-Input Text:
-"Microsoft (MSFT) announced a massive $10B investment in AI infrastructure today. This move places them well ahead of competitors like Google (GOOGL) and Amazon (AMZN), who are struggling to keep up with infrastructure demands."
-
-Ticker: MSFT
-
-Output JSON:
+**Example 1: Clear Hit**
+Input: "Microsoft (MSFT) announced a massive $10B investment in AI infrastructure today to expand its cloud capabilities..."
+Output:
 [
-  {{
+  {
     "ticker": "MSFT",
-    "impact_headline": "Microsoft Announces $10B AI infrastructure investment",
-    "summary": "Microsoft (MSFT) announced a massive $10B investment in AI infrastructure. They are further expanding their lead over peers."
+    "impact_headline": "MSFT commits $10B to AI infrastructure expansion",
+    "summary": "Microsoft is allocating $10 billion toward AI data centers to secure its lead in the generative AI market and bolster Azure's computing power.",
     "relevance_score": 100,
     "breaking_news_score": 90,
     "importance_score": 85,
-    "_reasoning": "Main subject. Hard investment numbers announced."
-  }}
+    "_reasoning": "Major capital expenditure announcement. Primary focus of the article."
+  }
 ]
 
-
-Input Text:
-"Markets rallied today. Nvidia (NVDA) led the charge, gaining 5%, while Apple (AAPL) remained flat. Investors are waiting for CPI data."
-
-Ticker: AAPL
-
-Output JSON:
-[]
-(Notice: The article is low quality, nothing interesting happened to AAPL)
-
-Input Text:
-"Here are 3 stocks to watch: Palantir, Tesla, and SoFi. We believe these companies have good charts."
-
-Ticker: PLTR
-
-Output JSON:
-[]
-(Notice: Returns empty list. This is pure fluff/listicle with no hard news.)
+**Example 2: Clear Miss**
+Input: "Here are the top 5 tech stocks to watch this summer..."
+Output: []
 
 ---
 
 TASK:
 Analyze the text below. Apply the Filtering Rules. Return ONLY a valid JSON list of the surviving tickers.
 
-Source: {src} from {url}. The ticker in focus is: {ticker}.
+Source: {src} from {url}.
+The ticker in focus is: {ticker}. Content:
 ---
 {content}
 ---
