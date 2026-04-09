@@ -1,12 +1,8 @@
 """
-sync_prices.py — Phase 3A (daily price sync)
+sync_prices.py — daily price sync
 
-Fetches missing daily OHLCV bars from Alpaca for each target ticker
-and appends them to market_data.db.
-
-Designed to be run manually or via cron after market close (e.g. 5 PM EST).
-It always resumes from the last stored date, so it's safe to run multiple
-times or after a gap.
+Fetches missing daily OHLCV bars from Alpaca for each target ticker.
+Resumes from the last stored date — safe to run multiple times or after a gap.
 
 Usage:
     python sync_prices.py
@@ -15,67 +11,39 @@ Usage:
 
 import argparse
 import time
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 
-from alpaca_trade_api.rest import REST, TimeFrame
-
+import alpaca
 import market_data
 import utils
 
-ALPACA_KEY    = utils.get_env_variable("ALPACA_KEY")
-ALPACA_SECRET = utils.get_env_variable("ALPACA_SECRET")
-
 DEFAULT_TICKERS = ["NVDA", "AAPL", "MSFT"]
-SLEEP_BETWEEN   = 0.5   # seconds between tickers
+SLEEP_BETWEEN   = 0.5
 
 
-def sync_ticker(api: REST, ticker: str):
+def sync_ticker(ticker: str):
     latest = market_data.get_latest_price_date(ticker)
-    end    = str(date.today() - timedelta(days=1))  # yesterday (today's bar not closed)
+    end    = str(date.today() - timedelta(days=1))
 
     if latest is None:
-        print(f"  [{ticker}] No data found — run backfill_prices.py first for a full history.")
+        print(f"  [{ticker}] No data — run backfill_prices.py first.")
         return
 
     if latest >= end:
         print(f"  [{ticker}] Already up to date ({latest}).")
         return
 
-    # Resume from the day after our last row
-    from datetime import datetime
     start = str((datetime.strptime(latest, "%Y-%m-%d") + timedelta(days=1)).date())
     print(f"  [{ticker}] Syncing {start} → {end} ...")
 
-    bars = api.get_bars(
-        ticker,
-        TimeFrame.Day,
-        start=start,
-        end=end,
-        adjustment="split",
-        feed="iex",
-        limit=1000,
-    ).df
-
-    if bars.empty:
-        print(f"  [{ticker}] No new bars (market may have been closed).")
+    bars = alpaca.get_bars(utils.to_alpaca_ticker(ticker), "1Day", start, end)
+    if not bars:
+        print(f"  [{ticker}] No new bars.")
         return
 
-    rows = []
-    for ts, row in bars.iterrows():
-        rows.append({
-            "ticker":      ticker,
-            "date":        str(ts.date()),
-            "open":        float(row["open"]),
-            "high":        float(row["high"]),
-            "low":         float(row["low"]),
-            "close":       float(row["close"]),
-            "volume":      int(row["volume"]),
-            "vwap":        float(row["vwap"])      if "vwap"        in row else None,
-            "trade_count": int(row["trade_count"]) if "trade_count" in row else None,
-        })
-
+    rows = alpaca.bars_to_daily_rows(ticker, bars)
     inserted = market_data.bulk_insert_prices(rows)
-    print(f"  [{ticker}] Inserted {inserted} row(s) — now up to {rows[-1]['date']}")
+    print(f"  [{ticker}] Inserted {inserted} row(s) → {rows[-1]['date']}")
 
 
 def main():
@@ -85,16 +53,10 @@ def main():
 
     market_data.init_db()
 
-    api = REST(
-        key_id=ALPACA_KEY,
-        secret_key=ALPACA_SECRET,
-        base_url="https://paper-api.alpaca.markets/v2",
-    )
-
     print(f"\nSyncing {len(args.tickers)} ticker(s): {args.tickers}\n")
     for ticker in args.tickers:
         try:
-            sync_ticker(api, ticker)
+            sync_ticker(ticker)
         except Exception as e:
             print(f"  [{ticker}] ERROR: {e}")
         time.sleep(SLEEP_BETWEEN)

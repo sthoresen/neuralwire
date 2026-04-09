@@ -115,41 +115,21 @@ def _intraday_is_stale(ticker: str) -> bool:
 def _refresh_intraday(db_ticker: str):
     """Background task: fetch latest minute bars from Alpaca and upsert into DB."""
     try:
-        from alpaca_trade_api.rest import REST, TimeFrame
-        from datetime import date, timedelta
+        from datetime import date, timedelta, datetime as dt
+        import alpaca
 
-        api = REST(
-            key_id=utils.get_env_variable("ALPACA_KEY"),
-            secret_key=utils.get_env_variable("ALPACA_SECRET"),
-            base_url="https://paper-api.alpaca.markets/v2",
-        )
-        alpaca_ticker = utils.to_alpaca_ticker(db_ticker)
         latest = market_data.get_latest_intraday_timestamp(db_ticker)
         if latest:
-            from datetime import datetime as dt
             start = str((dt.fromisoformat(latest.replace(" ", "T")) + timedelta(minutes=1)).date())
         else:
             start = str(date.today())
         end = str(date.today())
 
-        bars = api.get_bars(
-            alpaca_ticker, TimeFrame.Minute,
-            start=start, end=end,
-            adjustment="split", feed="iex", limit=100_000,
-        ).df
-
-        if bars.empty:
+        bars = alpaca.get_bars(utils.to_alpaca_ticker(db_ticker), "1Min", start, end, limit=100_000)
+        if not bars:
             return
 
-        rows = [{
-            "ticker": db_ticker,
-            "timestamp": ts.isoformat(),
-            "open": float(row["open"]), "high": float(row["high"]),
-            "low": float(row["low"]), "close": float(row["close"]),
-            "volume": int(row["volume"]),
-            "vwap": float(row["vwap"]) if "vwap" in row else None,
-            "trade_count": int(row["trade_count"]) if "trade_count" in row else None,
-        } for ts, row in bars.iterrows()]
+        rows = alpaca.bars_to_intraday_rows(db_ticker, bars)
         market_data.bulk_insert_intraday(rows)
         print(f"[intraday refresh] {db_ticker}: upserted {len(rows)} bars", flush=True)
     except Exception as e:
