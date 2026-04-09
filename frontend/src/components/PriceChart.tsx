@@ -53,11 +53,12 @@ interface Props {
 }
 
 export default function PriceChart({ prices, intraday, accent }: Props) {
-  const containerRef  = useRef<HTMLDivElement>(null);
-  const tooltipRef    = useRef<HTMLDivElement>(null);
-  const chartRef      = useRef<IChartApi | null>(null);
-  const seriesRef     = useRef<ISeriesApi<"Area"> | null>(null);
+  const containerRef    = useRef<HTMLDivElement>(null);
+  const tooltipRef      = useRef<HTMLDivElement>(null);
+  const chartRef        = useRef<IChartApi | null>(null);
+  const seriesRef       = useRef<ISeriesApi<"Area"> | null>(null);
   const [activeRange, setActiveRange] = useState<RangeLabel>("1Y");
+  const activeRangeRef  = useRef<RangeLabel>("1Y");
 
   // Build chart once on mount / when accent changes
   useEffect(() => {
@@ -94,8 +95,8 @@ export default function PriceChart({ prices, intraday, accent }: Props) {
     });
     seriesRef.current = series;
 
-    // Render default range (1Y) immediately
-    loadRange("1Y", series, chart);
+    // Render the current active range (preserves user selection on intraday refresh)
+    loadRange(activeRangeRef.current, series, chart);
 
     // Floating tooltip on crosshair move
     chart.subscribeCrosshairMove((param) => {
@@ -192,6 +193,7 @@ export default function PriceChart({ prices, intraday, accent }: Props) {
 
   function applyRange(label: RangeLabel) {
     setActiveRange(label);
+    activeRangeRef.current = label;
     if (chartRef.current && seriesRef.current) {
       loadRange(label, seriesRef.current, chartRef.current);
     }
