@@ -17,6 +17,7 @@ Public API:
 import re
 from datetime import datetime, timedelta
 import database
+import utils
 
 TTL_DAYS = 90
 
@@ -102,7 +103,7 @@ def _is_fresh(fetched_at) -> bool:
 
 def _fetch_yfinance(ticker: str) -> dict:
     import yfinance as yf
-    info = yf.Ticker(ticker).info
+    info = yf.Ticker(utils.to_yfinance_ticker(ticker)).info
     raw_exchange = info.get("exchange", "")
     return {
         "long_name":     info.get("longName", ticker),

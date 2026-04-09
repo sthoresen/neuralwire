@@ -13,6 +13,7 @@ import database
 import market_data
 import ticker_colors as tc
 import ticker_classification as tclass
+import utils
 
 # ── Init ───────────────────────────────────────────────────────────────────
 database.init_db()
@@ -46,7 +47,7 @@ def _available_tickers() -> list[str]:
         """)
         rows = c.fetchall()
         conn.close()
-        return [r[0] for r in rows] if rows else ["NVDA"]
+        return [utils.to_display_ticker(r[0]) for r in rows] if rows else ["NVDA"]
     except Exception:
         return ["NVDA"]
 
@@ -62,7 +63,7 @@ def list_tickers():
 @app.get("/ticker/{ticker}/header")
 def ticker_header(ticker: str):
     """Return ticker classification, accent color, and header description."""
-    ticker = ticker.upper()
+    ticker = utils.to_db_ticker(ticker.upper())
     cls = tclass.get_or_fetch(ticker)
     accent = tc.resolve(ticker)
     accent_light = tc.darken_hex(accent)
@@ -72,7 +73,7 @@ def ticker_header(ticker: str):
         else f"{cls.get('long_name', ticker)} is a publicly traded company."
     )
     return {
-        "ticker": ticker,
+        "ticker": utils.to_display_ticker(ticker),
         "long_name": cls.get("long_name", ticker),
         "eyebrow": tclass.format_eyebrow(cls),
         "description": description,
@@ -86,17 +87,17 @@ def ticker_header(ticker: str):
 @app.get("/ticker/{ticker}/prices")
 def ticker_prices(ticker: str):
     """Return historical daily close prices."""
-    ticker = ticker.upper()
+    ticker = utils.to_db_ticker(ticker.upper())
     rows = market_data.get_prices(ticker)
-    return {"ticker": ticker, "prices": rows or []}
+    return {"ticker": utils.to_display_ticker(ticker), "prices": rows or []}
 
 
 @app.get("/ticker/{ticker}/intraday")
 def ticker_intraday(ticker: str):
     """Return intraday (1-min) prices."""
-    ticker = ticker.upper()
+    ticker = utils.to_db_ticker(ticker.upper())
     rows = market_data.get_intraday(ticker)
-    return {"ticker": ticker, "intraday": rows or []}
+    return {"ticker": utils.to_display_ticker(ticker), "intraday": rows or []}
 
 
 @app.get("/ticker/{ticker}/articles")
@@ -106,7 +107,7 @@ def ticker_articles(
     limit: int = Query(60, ge=1, le=200),
 ):
     """Return recent news articles with AI analysis scores."""
-    ticker = ticker.upper()
+    ticker = utils.to_db_ticker(ticker.upper())
     conn = get_conn()
     c = conn.cursor()
     c.execute("""
@@ -122,7 +123,7 @@ def ticker_articles(
     conn.close()
     cols = ["impact_headline", "headline", "url", "published_at", "provider",
             "ai_summary", "importance_score", "relevancy_score", "breaking_news_score"]
-    return {"ticker": ticker, "articles": [dict(zip(cols, r)) for r in rows]}
+    return {"ticker": utils.to_display_ticker(ticker), "articles": [dict(zip(cols, r)) for r in rows]}
 
 
 @app.get("/ticker/{ticker}/coverage")
@@ -134,7 +135,7 @@ def ticker_coverage(
     limit: int = Query(200, ge=1, le=500),
 ):
     """Return filtered articles for the Coverage page."""
-    ticker = ticker.upper()
+    ticker = utils.to_db_ticker(ticker.upper())
     conn = get_conn()
     c = conn.cursor()
     c.execute("""
@@ -162,18 +163,18 @@ def ticker_coverage(
         if d["url"] not in seen:
             seen.add(d["url"])
             articles.append(d)
-    return {"ticker": ticker, "articles": articles}
+    return {"ticker": utils.to_display_ticker(ticker), "articles": articles}
 
 
 @app.get("/ticker/{ticker}/focal-points")
 def ticker_focal_points(ticker: str):
     """Return the latest focal points artefact."""
-    ticker = ticker.upper()
+    ticker = utils.to_db_ticker(ticker.upper())
     artefact = database.get_focal_points(ticker)
     if not artefact:
-        return {"ticker": ticker, "content": None, "generated_at": None, "model_name": None}
+        return {"ticker": utils.to_display_ticker(ticker), "content": None, "generated_at": None, "model_name": None}
     return {
-        "ticker": ticker,
+        "ticker": utils.to_display_ticker(ticker),
         "content": artefact["content"],
         "generated_at": artefact.get("generated_at"),
         "model_name": artefact.get("model_name"),
@@ -183,12 +184,12 @@ def ticker_focal_points(ticker: str):
 @app.get("/ticker/{ticker}/monthly-news-flow")
 def ticker_monthly_news_flow(ticker: str):
     """Return the latest monthly news flow artefact."""
-    ticker = ticker.upper()
+    ticker = utils.to_db_ticker(ticker.upper())
     artefact = database.get_monthly_news_flow(ticker)
     if not artefact:
-        return {"ticker": ticker, "content": None, "generated_at": None, "model_name": None}
+        return {"ticker": utils.to_display_ticker(ticker), "content": None, "generated_at": None, "model_name": None}
     return {
-        "ticker": ticker,
+        "ticker": utils.to_display_ticker(ticker),
         "content": artefact["content"],
         "generated_at": artefact.get("generated_at"),
         "model_name": artefact.get("model_name"),
@@ -198,6 +199,6 @@ def ticker_monthly_news_flow(ticker: str):
 @app.get("/ticker/{ticker}/events")
 def ticker_events(ticker: str):
     """Return the event timeline for a ticker."""
-    ticker = ticker.upper()
+    ticker = utils.to_db_ticker(ticker.upper())
     events = database.get_ticker_events(ticker)
-    return {"ticker": ticker, "events": events or []}
+    return {"ticker": utils.to_display_ticker(ticker), "events": events or []}

@@ -10,6 +10,8 @@ from alpaca_trade_api.rest import REST
 import market_data
 import sync_prices
 import utils
+from datetime import date, timedelta
+from alpaca_trade_api.rest import TimeFrame
 
 SLEEP_BETWEEN = 0.5
 
@@ -43,11 +45,42 @@ if __name__ == "__main__":
         base_url="https://paper-api.alpaca.markets/v2",
     )
 
-    for ticker in tickers:
+    for db_ticker in tickers:
+        alpaca_ticker = utils.to_alpaca_ticker(db_ticker)
         try:
-            sync_prices.sync_ticker(api, ticker)
+            # Fetch from Alpaca using the translated symbol, store under the DB ticker
+            latest = market_data.get_latest_price_date(db_ticker)
+            end = str(date.today() - timedelta(days=1))
+
+            if latest is None:
+                print(f"  [{db_ticker}] No data — run run_backfill_historical_prices.py first.")
+            elif latest >= end:
+                print(f"  [{db_ticker}] Already up to date ({latest}).")
+            else:
+                from datetime import datetime as dt
+                start = str((dt.strptime(latest, "%Y-%m-%d") + timedelta(days=1)).date())
+                print(f"  [{db_ticker}] Syncing {start} → {end} (Alpaca: {alpaca_ticker})...")
+                bars = api.get_bars(
+                    alpaca_ticker, TimeFrame.Day,
+                    start=start, end=end,
+                    adjustment="split", feed="iex", limit=1000,
+                ).df
+                if bars.empty:
+                    print(f"  [{db_ticker}] No new bars.")
+                else:
+                    rows = [{
+                        "ticker": db_ticker,
+                        "date": str(ts.date()),
+                        "open": float(row["open"]), "high": float(row["high"]),
+                        "low": float(row["low"]), "close": float(row["close"]),
+                        "volume": int(row["volume"]),
+                        "vwap": float(row["vwap"]) if "vwap" in row else None,
+                        "trade_count": int(row["trade_count"]) if "trade_count" in row else None,
+                    } for ts, row in bars.iterrows()]
+                    inserted = market_data.bulk_insert_prices(rows)
+                    print(f"  [{db_ticker}] Inserted {inserted} row(s) → {rows[-1]['date']}")
         except Exception as e:
-            print(f"  [{ticker}] ERROR: {e}")
+            print(f"  [{db_ticker}] ERROR: {e}")
         time.sleep(SLEEP_BETWEEN)
 
     print("=== Done ===")

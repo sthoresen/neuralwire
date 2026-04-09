@@ -88,6 +88,46 @@ def clean_json_response(response_text):
         return []
     
 
+# ── Ticker normalisation ──────────────────────────────────────────────────────
+# Some providers mangle tickers with dots (e.g. BRK.B → BRKB, BRK/B, BRK-B).
+# DB stores tickers in whatever format the ingest source used (Alpha Vantage = no dot).
+# These helpers translate for display and per-API use without touching the DB.
+
+_DISPLAY_MAP = {
+    "BRKB": "BRK.B",
+    "BRKA": "BRK.A",
+}
+_ALPACA_MAP = {
+    "BRKB": "BRK/B",
+    "BRKA": "BRK/A",
+}
+_YFINANCE_MAP = {
+    "BRKB": "BRK-B",
+    "BRKA": "BRK-A",
+}
+
+
+def to_display_ticker(ticker: str) -> str:
+    """Return the human-readable ticker symbol (e.g. BRKB → BRK.B)."""
+    return _DISPLAY_MAP.get(ticker, ticker)
+
+
+def to_db_ticker(ticker: str) -> str:
+    """Convert a display/URL ticker back to the DB storage format (e.g. BRK.B → BRKB)."""
+    _reverse = {v: k for k, v in _DISPLAY_MAP.items()}
+    return _reverse.get(ticker, ticker)
+
+
+def to_alpaca_ticker(ticker: str) -> str:
+    """Return the Alpaca-compatible ticker symbol (e.g. BRKB → BRK/B)."""
+    return _ALPACA_MAP.get(ticker, ticker)
+
+
+def to_yfinance_ticker(ticker: str) -> str:
+    """Return the yfinance-compatible ticker symbol (e.g. BRKB → BRK-B)."""
+    return _YFINANCE_MAP.get(ticker, ticker)
+
+
 def csv_to_tickers(res):
     if not isinstance(res, str):
         print("The ticker finding llm failed to generate a string")

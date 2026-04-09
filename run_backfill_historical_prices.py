@@ -18,6 +18,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "python_backend"))
 from db_connection import get_conn
 import market_data
 import backfill_prices
+import utils
 
 SLEEP_BETWEEN = 1.0
 
@@ -53,11 +54,33 @@ if __name__ == "__main__":
     start = str(date.today() - timedelta(days=365 * 5))
     end = str(date.today())
 
-    for ticker in tickers:
+    for db_ticker in tickers:
+        alpaca_ticker = utils.to_alpaca_ticker(db_ticker)
         try:
-            backfill_prices.backfill_ticker(ticker, start, end)
+            # backfill_ticker uses ticker for both API and DB — call fetch_bars directly
+            # so we can translate the symbol for Alpaca but store under the DB ticker
+            latest = market_data.get_latest_price_date(db_ticker)
+            if latest and latest >= end:
+                print(f"  [{db_ticker}] Already up to date ({latest}). Skipping.")
+            else:
+                effective_start = start
+                if latest and latest > start:
+                    from datetime import datetime as dt, timedelta as td
+                    effective_start = str((dt.strptime(latest, "%Y-%m-%d") + td(days=1)).date())
+                    print(f"  [{db_ticker}] Resuming from {effective_start} (Alpaca: {alpaca_ticker})")
+                else:
+                    print(f"  [{db_ticker}] Backfilling from {effective_start} (Alpaca: {alpaca_ticker})")
+                rows = backfill_prices.fetch_bars(alpaca_ticker, effective_start, end)
+                # Override ticker key so rows are stored under the DB ticker name
+                for row in rows:
+                    row["ticker"] = db_ticker
+                if rows:
+                    inserted = market_data.bulk_insert_prices(rows)
+                    print(f"  [{db_ticker}] Inserted {inserted} rows ({rows[0]['date']} → {rows[-1]['date']})")
+                else:
+                    print(f"  [{db_ticker}] Nothing to insert.")
         except Exception as e:
-            print(f"  [{ticker}] ERROR: {e}")
+            print(f"  [{db_ticker}] ERROR: {e}")
         time.sleep(SLEEP_BETWEEN)
 
     print("=== Done ===")
