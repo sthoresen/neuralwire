@@ -18,9 +18,14 @@ function hexToRgba(hex: string, alpha: number): string {
 
 // Convert a date/datetime string to UTC seconds (UTCTimestamp for lightweight-charts)
 function toUTC(str: string): UTCTimestamp {
-  const s = str.length === 10
-    ? str + "T12:00:00Z"          // daily  'YYYY-MM-DD'
-    : str.replace(" ", "T") + "Z"; // intraday 'YYYY-MM-DD HH:MM:SS' stored as UTC
+  let s: string;
+  if (str.length === 10) {
+    s = str + "T12:00:00Z";                          // daily 'YYYY-MM-DD'
+  } else if (str.includes("+") || str.endsWith("Z")) {
+    s = str.replace(" ", "T");                        // already has tz info — don't add Z
+  } else {
+    s = str.replace(" ", "T") + "Z";                 // naive datetime — assume UTC
+  }
   return Math.floor(new Date(s).getTime() / 1000) as UTCTimestamp;
 }
 
