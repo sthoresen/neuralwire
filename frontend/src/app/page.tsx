@@ -63,6 +63,7 @@ export default function ScreenerPage() {
   useEffect(() => {
     if (!ticker) return;
     setLoading(true);
+    setIntraday([]);
 
     Promise.all([
       fetch(`${API}/ticker/${ticker}/header`).then((r) => r.json()),
@@ -91,12 +92,15 @@ export default function ScreenerPage() {
   useEffect(() => {
     if (!ticker) return;
 
+    let cancelled = false;
     let intervalId: ReturnType<typeof setInterval> | null = null;
+    let followUpId: ReturnType<typeof setTimeout> | null = null;
 
     function fetchIntraday() {
       fetch(`${API}/ticker/${ticker}/intraday`)
         .then((r) => r.json())
         .then((d) => {
+          if (cancelled) return;
           setIntraday(d.intraday ?? []);
           setMarketOpen(d.market_open ?? false);
           if (d.market_open && !intervalId) {
@@ -107,18 +111,23 @@ export default function ScreenerPage() {
     }
 
     fetchIntraday();
+    followUpId = setTimeout(() => { fetchIntraday(); followUpId = null; }, 4000);
 
     return () => {
+      cancelled = true;
       if (intervalId) clearInterval(intervalId);
+      if (followUpId) clearTimeout(followUpId);
     };
   }, [ticker]);
 
-  // Derived price values
-  const latestPrice = prices.length ? prices[prices.length - 1].close : null;
-  const prevPrice = prices.length > 1 ? prices[prices.length - 2].close : latestPrice;
-  const priceChange = latestPrice != null && prevPrice != null ? latestPrice - prevPrice : null;
-  const pricePct = priceChange != null && prevPrice ? (priceChange / prevPrice) * 100 : null;
-  const up = (priceChange ?? 0) >= 0;
+  // Derived price values — use latest intraday close when available, else last daily bar
+  const lastDailyClose  = prices.length ? prices[prices.length - 1].close : null;
+  const prevDailyClose  = prices.length > 1 ? prices[prices.length - 2].close : lastDailyClose;
+  const latestPrice     = intraday.length ? intraday[intraday.length - 1].close : lastDailyClose;
+  const prevPrice       = intraday.length ? (lastDailyClose ?? latestPrice) : (prevDailyClose ?? latestPrice);
+  const priceChange     = latestPrice != null && prevPrice != null ? latestPrice - prevPrice : null;
+  const pricePct        = priceChange != null && prevPrice ? (priceChange / prevPrice) * 100 : null;
+  const up              = (priceChange ?? 0) >= 0;
   const accent = header?.accent ?? "#76b900";
 
   return (

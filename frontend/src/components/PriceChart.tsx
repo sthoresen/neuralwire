@@ -52,12 +52,18 @@ function offsetYears(lastDate: string, years: number): string {
 }
 
 interface Props {
-  prices:   PricePoint[];
-  intraday: IntradayPoint[];
-  accent:   string;
+  prices:    PricePoint[];
+  intraday:  IntradayPoint[];
+  accent:    string;
 }
 
 export default function PriceChart({ prices, intraday, accent }: Props) {
+  // Augment daily prices with today's live intraday close as a synthetic point
+  const latestIntraday = intraday.length ? intraday[intraday.length - 1] : null;
+  const todayDate = latestIntraday ? latestIntraday.timestamp.slice(0, 10) : null;
+  const effectivePrices: PricePoint[] = (todayDate && prices.length && prices[prices.length - 1].date < todayDate)
+    ? [...prices, { date: todayDate, close: latestIntraday!.close }]
+    : prices;
   const containerRef    = useRef<HTMLDivElement>(null);
   const tooltipRef      = useRef<HTMLDivElement>(null);
   const chartRef        = useRef<IChartApi | null>(null);
@@ -67,7 +73,7 @@ export default function PriceChart({ prices, intraday, accent }: Props) {
 
   // Build chart once on mount / when accent changes
   useEffect(() => {
-    if (!containerRef.current || !prices.length) return;
+    if (!containerRef.current || !effectivePrices.length) return;
 
     const isDark = (document.documentElement.getAttribute("data-theme") ?? "dark") !== "light";
 
@@ -156,7 +162,7 @@ export default function PriceChart({ prices, intraday, accent }: Props) {
     chart: IChartApi
   ) {
     const useIntra = INTRADAY_RANGES.includes(label) && intraday.length > 0;
-    const lastDaily = prices[prices.length - 1]?.date ?? "";
+    const lastDaily = effectivePrices[effectivePrices.length - 1]?.date ?? "";
 
     let chartData: { time: UTCTimestamp; value: number }[];
 
@@ -171,7 +177,7 @@ export default function PriceChart({ prices, intraday, accent }: Props) {
         chartData = slice.map((r) => ({ time: toUTC(r.timestamp), value: r.close }));
       } else {
         // Intraday data exists but is too sparse — fall back to last N daily bars
-        chartData = prices
+        chartData = effectivePrices
           .slice(-cutoffDays)
           .map((r) => ({ time: toUTC(r.date), value: r.close }));
       }
@@ -184,9 +190,9 @@ export default function PriceChart({ prices, intraday, accent }: Props) {
         case "YTD": fromDate = lastDaily.slice(0, 4) + "-01-01"; break;
         case "1Y":  fromDate = offsetYears(lastDaily, 1);  break;
         case "3Y":  fromDate = offsetYears(lastDaily, 3);  break;
-        default:    fromDate = prices[0]?.date ?? lastDaily; // All
+        default:    fromDate = effectivePrices[0]?.date ?? lastDaily; // All
       }
-      chartData = sliceDaily(prices, fromDate).map((r) => ({
+      chartData = sliceDaily(effectivePrices, fromDate).map((r) => ({
         time:  toUTC(r.date),
         value: r.close,
       }));
@@ -204,7 +210,7 @@ export default function PriceChart({ prices, intraday, accent }: Props) {
     }
   }
 
-  if (!prices.length) {
+  if (!effectivePrices.length) {
     return (
       <p className="text-[var(--sn-text-tertiary)] text-sm italic mt-3">
         No price data available.
