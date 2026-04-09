@@ -42,6 +42,7 @@ export default function ScreenerPage() {
   const [header, setHeader] = useState<HeaderData | null>(null);
   const [prices, setPrices] = useState<{ date: string; close: number }[]>([]);
   const [intraday, setIntraday] = useState<{ timestamp: string; close: number }[]>([]);
+  const [marketOpen, setMarketOpen] = useState(false);
   const [mnf, setMnf] = useState<Artefact | null>(null);
   const [focalPoints, setFocalPoints] = useState<Artefact | null>(null);
   const [articles, setArticles] = useState<Article[]>([]);
@@ -66,27 +67,50 @@ export default function ScreenerPage() {
     Promise.all([
       fetch(`${API}/ticker/${ticker}/header`).then((r) => r.json()),
       fetch(`${API}/ticker/${ticker}/prices`).then((r) => r.json()),
-      fetch(`${API}/ticker/${ticker}/intraday`).then((r) => r.json()),
       fetch(`${API}/ticker/${ticker}/monthly-news-flow`).then((r) => r.json()),
       fetch(`${API}/ticker/${ticker}/focal-points`).then((r) => r.json()),
       fetch(`${API}/ticker/${ticker}/articles`).then((r) => r.json()),
       fetch(`${API}/ticker/${ticker}/events`).then((r) => r.json()),
     ])
-      .then(([h, p, intra, mnfData, fpData, arts, evts]) => {
+      .then(([h, p, mnfData, fpData, arts, evts]) => {
         setHeader(h);
         setPrices(p.prices ?? []);
-        setIntraday(intra.intraday ?? []);
         setMnf(mnfData);
         setFocalPoints(fpData);
         setArticles(arts.articles ?? []);
         setEvents(evts.events ?? []);
-        // Apply accent CSS variables
         document.documentElement.style.setProperty("--sn-accent", h.accent);
         document.documentElement.style.setProperty("--sn-accent-dim", h.accent_dim);
         document.documentElement.style.setProperty("--sn-accent-glow", h.accent_glow);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
+  }, [ticker]);
+
+  // Intraday polling — continuous during market hours, single fetch when closed
+  useEffect(() => {
+    if (!ticker) return;
+
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    function fetchIntraday() {
+      fetch(`${API}/ticker/${ticker}/intraday`)
+        .then((r) => r.json())
+        .then((d) => {
+          setIntraday(d.intraday ?? []);
+          setMarketOpen(d.market_open ?? false);
+          if (d.market_open && !intervalId) {
+            intervalId = setInterval(fetchIntraday, 60_000);
+          }
+        })
+        .catch(console.error);
+    }
+
+    fetchIntraday();
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [ticker]);
 
   // Derived price values

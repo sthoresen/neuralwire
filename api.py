@@ -6,8 +6,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "python_backend"))
 
 from db_connection import get_conn  # noqa: E402 — must come after sys.path.insert
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from datetime import datetime, timezone
 
 import database
 import market_data
@@ -92,12 +93,77 @@ def ticker_prices(ticker: str):
     return {"ticker": utils.to_display_ticker(ticker), "prices": rows or []}
 
 
+def _market_is_open() -> bool:
+    """True if NYSE is currently open (Mon–Fri 13:30–21:00 UTC, DST-agnostic)."""
+    now = datetime.now(timezone.utc)
+    if now.weekday() >= 5:
+        return False
+    minutes = now.hour * 60 + now.minute
+    return 13 * 60 + 30 <= minutes < 21 * 60
+
+
+def _intraday_is_stale(ticker: str) -> bool:
+    """True if intraday data is missing or older than 2 minutes."""
+    latest = market_data.get_latest_intraday_timestamp(ticker)
+    if not latest:
+        return True
+    latest_dt = datetime.fromisoformat(latest.replace(" ", "T")).replace(tzinfo=timezone.utc)
+    age_seconds = (datetime.now(timezone.utc) - latest_dt).total_seconds()
+    return age_seconds > 120
+
+
+def _refresh_intraday(db_ticker: str):
+    """Background task: fetch latest minute bars from Alpaca and upsert into DB."""
+    try:
+        from alpaca_trade_api.rest import REST, TimeFrame
+        from datetime import date, timedelta
+
+        api = REST(
+            key_id=utils.get_env_variable("ALPACA_KEY"),
+            secret_key=utils.get_env_variable("ALPACA_SECRET"),
+            base_url="https://paper-api.alpaca.markets/v2",
+        )
+        alpaca_ticker = utils.to_alpaca_ticker(db_ticker)
+        latest = market_data.get_latest_intraday_timestamp(db_ticker)
+        if latest:
+            from datetime import datetime as dt
+            start = str((dt.fromisoformat(latest.replace(" ", "T")) + timedelta(minutes=1)).date())
+        else:
+            start = str(date.today())
+        end = str(date.today())
+
+        bars = api.get_bars(
+            alpaca_ticker, TimeFrame.Minute,
+            start=start, end=end,
+            adjustment="split", feed="iex", limit=100_000,
+        ).df
+
+        if bars.empty:
+            return
+
+        rows = [{
+            "ticker": db_ticker,
+            "timestamp": ts.isoformat(),
+            "open": float(row["open"]), "high": float(row["high"]),
+            "low": float(row["low"]), "close": float(row["close"]),
+            "volume": int(row["volume"]),
+            "vwap": float(row["vwap"]) if "vwap" in row else None,
+            "trade_count": int(row["trade_count"]) if "trade_count" in row else None,
+        } for ts, row in bars.iterrows()]
+        market_data.bulk_insert_intraday(rows)
+        print(f"[intraday refresh] {db_ticker}: upserted {len(rows)} bars", flush=True)
+    except Exception as e:
+        print(f"[intraday refresh] {db_ticker} ERROR: {e}", flush=True)
+
+
 @app.get("/ticker/{ticker}/intraday")
-def ticker_intraday(ticker: str):
-    """Return intraday (1-min) prices."""
+def ticker_intraday(ticker: str, background_tasks: BackgroundTasks):
+    """Return intraday (1-min) prices. Triggers a background refresh if market is open and data is stale."""
     ticker = utils.to_db_ticker(ticker.upper())
+    if _market_is_open() and _intraday_is_stale(ticker):
+        background_tasks.add_task(_refresh_intraday, ticker)
     rows = market_data.get_intraday(ticker)
-    return {"ticker": utils.to_display_ticker(ticker), "intraday": rows or []}
+    return {"ticker": utils.to_display_ticker(ticker), "intraday": rows or [], "market_open": _market_is_open()}
 
 
 @app.get("/ticker/{ticker}/articles")
