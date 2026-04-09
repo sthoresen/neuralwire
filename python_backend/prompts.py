@@ -323,7 +323,7 @@ CRITICAL FILTERING RULES (READ CAREFULLY):
 Input: "Microsoft (MSFT) announced a massive $10B investment in AI infrastructure today to expand its cloud capabilities..."
 Output:
 [
-  {
+  {{
     "ticker": "MSFT",
     "impact_headline": "MSFT commits $10B to AI infrastructure expansion",
     "summary": "Microsoft is allocating $10 billion toward AI data centers to secure its lead in the generative AI market and bolster Azure's computing power.",
@@ -331,7 +331,7 @@ Output:
     "breaking_news_score": 90,
     "importance_score": 85,
     "_reasoning": "Major capital expenditure announcement. Primary focus of the article."
-  }
+  }}
 ]
 
 **Example 2: Clear Miss**
