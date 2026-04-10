@@ -72,7 +72,7 @@ def fetch_and_save(ticker: str, fiscal_year: int, fiscal_quarter: int,
         existing_earnings_id = None
         rows = database.get_earnings_list(ticker, limit=200)
         for r in rows:
-            if r["report_date"] == report_date:
+            if str(r["report_date"]) == report_date:
                 existing_earnings_id = r["id"]
                 break
 
