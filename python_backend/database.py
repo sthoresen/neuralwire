@@ -152,6 +152,14 @@ def init_db():
     )
     ''')
 
+    # J. App Settings (key/value config store)
+    c.execute('''
+    CREATE TABLE IF NOT EXISTS app_settings (
+        key   TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+    )
+    ''')
+
     conn.commit()
     conn.close()
     print("Database pipeline structure initialized.")
@@ -1058,6 +1066,26 @@ def save_ticker_classification(ticker: str, data: dict) -> None:
             display_tags  = EXCLUDED.display_tags,
             fetched_at    = CURRENT_TIMESTAMP
     """, {"ticker": ticker, **data})
+    conn.commit()
+    conn.close()
+
+
+def get_setting(key: str, default: str = None) -> str | None:
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT value FROM app_settings WHERE key = %s", (key,))
+    row = c.fetchone()
+    conn.close()
+    return row[0] if row else default
+
+
+def set_setting(key: str, value: str):
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO app_settings (key, value) VALUES (%s, %s)
+        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+    """, (key, value))
     conn.commit()
     conn.close()
 

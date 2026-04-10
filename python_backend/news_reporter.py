@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import database
 import utils
-
+from db_connection import get_conn
 
 
 ALPHA_VANTAGE_API_KEY=utils.get_env_variable('ALPHA_VANTAGE_API_KEY')
@@ -25,6 +25,35 @@ PROVIDERS_TO_USE = [
     'alpha_vantage'
 ]
 
+TICKERS_PER_CYCLE = 2
+
+
+def get_active_tickers() -> list[str]:
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute("""
+            SELECT DISTINCT ticker FROM ticker_artefacts
+            WHERE artefact_type = 'header_description'
+            ORDER BY ticker
+        """)
+        rows = c.fetchall()
+        conn.close()
+        return [r[0] for r in rows] if rows else ["NVDA"]
+    except Exception as e:
+        print(f"WARNING: could not query active tickers ({e}), falling back to NVDA")
+        return ["NVDA"]
+
+
+def get_next_tickers(all_tickers: list[str]) -> list[str]:
+    """Pick the next TICKERS_PER_CYCLE tickers using a rotating index stored in the DB."""
+    idx = int(database.get_setting("fetch_rotation_index", "0"))
+    n = len(all_tickers)
+    selected = [all_tickers[(idx + i) % n] for i in range(TICKERS_PER_CYCLE)]
+    database.set_setting("fetch_rotation_index", str((idx + TICKERS_PER_CYCLE) % n))
+    print(f"  [rotation] index={idx}, selected={selected}")
+    return selected
+
 def get_alpha_vantage_news(api_key, ticker=None):
     """Fetches from Alpha Vantage and saves directly to DB.
     If the ticker is not given, pull all news. If the ticker is given, search for news related to that ticker.
@@ -37,7 +66,7 @@ def get_alpha_vantage_news(api_key, ticker=None):
     params = {
         "function": "NEWS_SENTIMENT",
         "apikey": api_key,
-        "limit": 50
+        "limit": 1000
     }
 
     if ticker:
@@ -92,10 +121,11 @@ provider_functions = {
 
 
 
-TICKERS = ['NVDA']
-
 def pull_all_news():
-# Loop through the chosen providers and get the news
+    all_tickers = get_active_tickers()
+    tickers = get_next_tickers(all_tickers)
+    print(f"[pull_all_news] Active tickers: {len(all_tickers)}, fetching this cycle: {tickers}")
+
     for provider in PROVIDERS_TO_USE:
         if provider in provider_functions:
             api_key = API_KEYS.get(provider)
@@ -103,9 +133,8 @@ def pull_all_news():
                 print(f"\nWarning: API key for {provider} is not set. Skipping.")
                 continue
 
-            # Each function handles its own caching
-            for ticker in TICKERS:
-                news = provider_functions[provider](api_key, ticker)
+            for ticker in tickers:
+                provider_functions[provider](api_key, ticker)
         else:
             print(f"\nWarning: Provider '{provider}' is not recognized.")
 
