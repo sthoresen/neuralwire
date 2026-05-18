@@ -1,5 +1,6 @@
 #analysis.py
 
+import re
 import time
 from dataclasses import dataclass, field
 
@@ -9,6 +10,20 @@ import prompts
 import llms
 import utils
 from db_connection import get_conn
+
+_NOISE_PATTERNS = [
+    re.compile(r'\bstock[s]?\s+(up|down|rose|fell|drops?|gains?|surges?|tumbles?|climbs?|slides?|plunges?|rallies?)\s+\d', re.I),
+    re.compile(r'\bshares?\s+(up|down|rose|fell|drops?|gains?|surges?|tumbles?|climbs?|slides?|plunges?|rallies?)\s+\d', re.I),
+    re.compile(r'\btop\s+\d+\s+(stocks?|picks?|names?|companies)', re.I),
+    re.compile(r'\b\d+\s+(stocks?|shares?|names?)\s+to\s+(watch|buy|avoid|consider|own)', re.I),
+    re.compile(r'\bstocks?\s+to\s+(watch|buy|avoid|consider|own)', re.I),
+    re.compile(r'\bbest\s+\d+\s+stocks?', re.I),
+    re.compile(r'\bwhy\s+.{0,50}(could|might|may)\s+(rise|fall|rally|drop|surge|tumble)', re.I),
+    re.compile(r'\binsider\s+(buys?|sells?|purchased|sold)\s+[\d,]+\s+shares?', re.I),
+    re.compile(r'\b(etf|index)\s+(adds?|removes?|rebalances?|reconstitut)', re.I),
+    re.compile(r'\bweekly\s+(recap|roundup|summary|wrap)', re.I),
+    re.compile(r'\b(morning|afternoon|evening)\s+(brief|briefing|wrap|roundup)', re.I),
+]
 
 @dataclass
 class AnalysisResult:
@@ -467,6 +482,60 @@ def analyze_url(target_url):
     #return run_multi_ticker_analysis_with_save([article])
     return run_analysis_pipeline([article])
 
+
+def _is_regex_noise(headline: str) -> bool:
+    return any(p.search(headline) for p in _NOISE_PATTERNS)
+
+
+def _is_llm_noise(headline: str, api_summary: str) -> bool:
+    """Returns True if the LLM judges the article as not worth analyzing. Fails open (returns False) on LLM error."""
+    prompt = prompts.prefilter_prompt.format(
+        headline=headline,
+        summary=(api_summary or "")[:500],
+    )
+    result, _ = llms.llm_manager.call(prompt, tier="economy", max_tier="economy", reasoning=False, max_tokens=5)
+    if not result:
+        return False  # LLM unavailable — let it through
+    return result.strip().upper().startswith("NO")
+
+
+def _run_pre_filter(articles: list[dict]) -> list[dict]:
+    """
+    Removes obvious noise before scraping or full LLM analysis.
+    Stage 1: free regex on headline.
+    Stage 2: cheap LLM call on headline + api_summary.
+    Returns the articles that should proceed to full analysis.
+    """
+    keep, regex_skip, llm_skip = [], [], []
+
+    for article in articles:
+        headline = article.get("headline") or ""
+        if _is_regex_noise(headline):
+            regex_skip.append(article["id"])
+        else:
+            keep.append(article)
+
+    if regex_skip:
+        database.mark_articles_skipped(regex_skip, reason="regex")
+        print(f"  [pre-filter] regex skipped {len(regex_skip)} articles")
+
+    survivors, llm_skip_ids = [], []
+    for article in keep:
+        headline = article.get("headline") or ""
+        api_summary = article.get("api_summary") or ""
+        if _is_llm_noise(headline, api_summary):
+            llm_skip_ids.append(article["id"])
+        else:
+            survivors.append(article)
+
+    if llm_skip_ids:
+        database.mark_articles_skipped(llm_skip_ids, reason="llm_prefilter")
+        print(f"  [pre-filter] LLM skipped {len(llm_skip_ids)} articles")
+
+    print(f"  [pre-filter] {len(survivors)}/{len(articles)} articles proceed to full analysis")
+    return survivors
+
+
 def _get_active_tickers() -> set[str]:
     """Returns the set of tickers the system actively tracks."""
     try:
@@ -495,6 +564,12 @@ def run_pending_pipeline(limit=20):
         return []
 
     print(f"Found {len(articles)} pending articles. Starting pipeline...")
+    print("--- Pre-filtering ---")
+    articles = _run_pre_filter(articles)
+    if not articles:
+        print("All articles filtered out. Done.")
+        return []
+
     return run_analysis_pipeline(articles)
 
 

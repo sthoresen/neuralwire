@@ -566,6 +566,31 @@ def get_pending_articles(limit=20):
     return rows
 
 
+def mark_articles_skipped(article_ids: list[int], reason: str = "pre_filter") -> int:
+    """
+    Marks articles as skipped so they are excluded from future analysis runs.
+    Returns the number of rows updated.
+    """
+    if not article_ids:
+        return 0
+    conn = get_conn()
+    c = conn.cursor()
+    try:
+        c.execute(
+            "UPDATE articles SET analysis_status = %s WHERE id = ANY(%s)",
+            (f"skipped:{reason}", article_ids),
+        )
+        updated = c.rowcount
+        conn.commit()
+        return updated
+    except Exception as e:
+        print(f"mark_articles_skipped error: {e}")
+        conn.rollback()
+        return 0
+    finally:
+        conn.close()
+
+
 def save_ticker_artefact(ticker, artefact_type, content, model_name, prompt_id, prompt):
     """
     Appends a new artefact row for the given ticker and type.

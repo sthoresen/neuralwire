@@ -62,6 +62,29 @@ Source: {src} from {url}
 '''
 
 
+prefilter_prompt = """You are screening financial news articles to decide if one is worth reading in full.
+
+The bar is: would a serious investor or analyst find this worth their time?
+
+Reply YES if the article is likely to contain any of the following:
+- Hard news: earnings, M&A, regulatory actions, lawsuits, product launches, leadership changes, major contracts
+- Substantive analysis: deep dives into a company's business model, competitive position, or financials — the kind of work published by research firms, respected newsletters, or experienced analysts
+- Meaningful commentary: a well-reasoned argument about a company's prospects that goes beyond "stock might go up"
+
+Reply NO if the article is:
+- Routine price movement ("stock up 2%", "shares fell today")
+- A listicle or watchlist ("top 10 stocks", "names to watch")
+- Shallow clickbait or SEO filler with no real insight
+- A general market or macro roundup where the company is incidentally mentioned
+- An index/ETF rebalance announcement
+
+When in doubt, reply YES.
+
+Headline: {headline}
+Summary: {summary}
+
+Reply with only YES or NO."""
+
 
 analyze_article_impact_prompt_v1 = """
 SYSTEM ROLE:
