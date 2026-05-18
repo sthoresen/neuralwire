@@ -364,7 +364,18 @@ def analyze_article_impact(article):
         if not tickers or tickers == -1 or len(tickers) == 0:
             return []  # LLM succeeded but article is boring/irrelevant
 
-         # Step 2: Analyze per Ticker
+        # Filter to active watchlist — skip tickers we don't track
+        active = _get_active_tickers()
+        if active:
+            before = tickers
+            tickers = [t for t in tickers if t in active]
+            dropped = [t for t in before if t not in active]
+            if dropped:
+                print(f'  [watchlist filter] dropped {dropped}, keeping {tickers}')
+            if not tickers:
+                return []
+
+        # Step 2: Analyze per Ticker
         for ticker in tickers:
             prompt = prompts.analyze_article_impact_prompt_single_ticker_v1.format(
             src=src,
@@ -455,6 +466,22 @@ def analyze_url(target_url):
     # We wrap the single article in a list because the function expects a list
     #return run_multi_ticker_analysis_with_save([article])
     return run_analysis_pipeline([article])
+
+def _get_active_tickers() -> set[str]:
+    """Returns the set of tickers the system actively tracks."""
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute("""
+            SELECT DISTINCT ticker FROM ticker_artefacts
+            WHERE artefact_type = 'header_description'
+        """)
+        rows = c.fetchall()
+        conn.close()
+        return {r[0] for r in rows} if rows else set()
+    except Exception:
+        return set()
+
 
 def run_pending_pipeline(limit=20):
     """
