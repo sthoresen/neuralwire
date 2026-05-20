@@ -363,7 +363,7 @@ CRITICAL FILTERING RULES (READ CAREFULLY):
 ### EXAMPLES
 
 **Example 1: Clear Hit**
-Input: "Microsoft (MSFT) announced a massive $10B investment in AI infrastructure today to expand its cloud capabilities..."
+Input: Ticker: MSFT, Article: "Microsoft (MSFT) announced a massive $10B investment in AI infrastructure today to expand its cloud capabilities..."
 Output:
 [
   {{
@@ -378,13 +378,13 @@ Output:
 ]
 
 **Example 2: Clear Miss**
-Input: "Here are the top 5 tech stocks to watch this summer..."
+Input: Ticker: PLTR, Article: "Here are the top 5 tech stocks to watch this summer..."
 Output: []
 
 ---
 
 TASK:
-Analyze the text below. Apply the Filtering Rules. Return ONLY a valid JSON list of the surviving tickers.
+Analyze the text below. Apply the Filtering Rules. Return ONLY a valid JSON list with the given ticker (one element), or empty.
 
 Source: {src} from {url}.
 The ticker in focus is: {ticker}. Content:

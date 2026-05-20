@@ -402,13 +402,14 @@ def analyze_article_impact(article):
                 res_text, model_used = llm_manager.call(prompt, tier="economy", max_tier="standard", reasoning=False)
                 data = utils.clean_json_response(res_text)
 
-                if isinstance(data, list) and len(data) == 1:
-                    data = data[0]
+                # Normalise: LLM may return a list despite being asked for one ticker
+                if isinstance(data, list):
+                    # Prefer the entry matching the expected ticker; fall back to first
+                    data = next((d for d in data if isinstance(d, dict) and d.get('ticker') == ticker), data[0] if data else None)
 
                 print(f'data={data}')
-                # Validation: Make sure the LLM actually returned data for that ticker
-                if data:
-                    data['ticker'] = ticker # Force consistency
+                if data and isinstance(data, dict):
+                    data['ticker'] = ticker  # Force consistency
                     results_container.append(AnalysisResult(
                         ticker=ticker,
                         data=data,
@@ -417,9 +418,9 @@ def analyze_article_impact(article):
                         prompt_id="analyze_article_impact_prompt_single_ticker_v1"
                     ))
             except Exception as e:
-                print(f"LLM Error: {e}")
-                return None  # Hard failure
-            
+                print(f"LLM Error [{ticker}]: {e}")
+                # Continue to next ticker — one bad parse shouldn't abort the article
+
     # --- STRATEGY B: SHORT CONTENT (Single Shot) ---
     else:
         # One LLM call that does all the work

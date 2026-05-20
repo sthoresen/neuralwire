@@ -9,7 +9,6 @@ import datetime
 import utils
 
 OPENROUTER_KEY = utils.get_env_variable('OPENROUTER_KEY')
-GOOGLE_API_KEY = utils.get_env_variable('GOOGLE_API_KEY')
 XAI_API_KEY    = utils.get_env_variable('XAI_API_KEY')
 
 # Tier escalation order (low → high cost/quality)
@@ -74,20 +73,30 @@ class LLMProviderManager:
             # Cheap, fast. For high-volume or low-stakes tasks (article triage,
             # color lookup, tag generation, event scan pass 1).
             {
-                "name": "Google Direct (Gemini 2.5 Flash)",
-                "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
-                "api_key": GOOGLE_API_KEY,
-                "model": "gemini-2.5-flash",
-                "tier": "economy",
-                "supports_reasoning": True,
-                "is_active": False,
-                "retries": 1,
-            },
-            {
-                "name": "OpenRouter (GPT-4o Mini)",
+                "name": "Tencent: Hy3 preview",
                 "base_url": "https://openrouter.ai/api/v1",
                 "api_key": OPENROUTER_KEY,
-                "model": "openai/gpt-4o-mini",
+                "model": "tencent/hy3-preview",
+                "tier": "economy",
+                "supports_reasoning": True,
+                "is_active": True,
+                "retries": 3,
+            },
+            {
+                "name": "Gemma 4 31B IT",
+                "base_url": "https://openrouter.ai/api/v1",
+                "api_key": OPENROUTER_KEY,
+                "model": "google/gemma-4-31b-it",
+                "tier": "economy",
+                "supports_reasoning": True,
+                "is_active": True,
+                "retries": 3,
+            },
+            {
+                "name": "OpenRouter (GPT-OSS 120B)",
+                "base_url": "https://openrouter.ai/api/v1",
+                "api_key": OPENROUTER_KEY,
+                "model": "openai/gpt-oss-120b:free",
                 "tier": "economy",
                 "supports_reasoning": False,
                 "is_active": True,
@@ -99,20 +108,31 @@ class LLMProviderManager:
                 "api_key": OPENROUTER_KEY,
                 "model": "openai/gpt-oss-120b",
                 "tier": "economy",
-                "supports_reasoning": True,
+                "supports_reasoning": False,
                 "is_active": True,
                 "retries": 3,
             },
 
+
             # ── Standard ───────────────────────────────────────────────────────
             # Good quality/cost balance. Default for most analysis and writing.
             {
-                "name": "OpenRouter (Grok 4.1 Fast)",
+                "name": "Tencent: Hy3 preview",
                 "base_url": "https://openrouter.ai/api/v1",
                 "api_key": OPENROUTER_KEY,
-                "model": "x-ai/grok-4.1-fast",
+                "model": "tencent/hy3-preview",
                 "tier": "standard",
                 "supports_reasoning": True,
+                "is_active": True,
+                "retries": 3,
+            },
+            {
+                "name": "DeepSeek V4 Flash",
+                "base_url": "https://openrouter.ai/api/v1",
+                "api_key": OPENROUTER_KEY,
+                "model": "deepseek/deepseek-v4-flash",
+                "tier": "standard",
+                "supports_reasoning": False,
                 "is_active": True,
                 "retries": 3,
             },
@@ -120,20 +140,20 @@ class LLMProviderManager:
             # ── Premium ────────────────────────────────────────────────────────
             # Highest quality. For complex synthesis or explicit override.
             {
-                "name": "OpenRouter (GPT-4.1)",
+                "name": "OpenRouter (Claude Haiku 4.5)",
                 "base_url": "https://openrouter.ai/api/v1",
                 "api_key": OPENROUTER_KEY,
-                "model": "openai/gpt-4.1",
+                "model": "anthropic/claude-haiku-4.5",
                 "tier": "premium",
-                "supports_reasoning": False,
+                "supports_reasoning": True,
                 "is_active": True,
                 "retries": 3,
             },
             {
-                "name": "OpenRouter (Qwen 3.5 397B)",
+                "name": "OpenRouter (Qwen 3.6 Plus)",
                 "base_url": "https://openrouter.ai/api/v1",
                 "api_key": OPENROUTER_KEY,
-                "model": "qwen/qwen3.5-397b-a17b",
+                "model": "qwen/qwen3.6-plus",
                 "tier": "premium",
                 "supports_reasoning": True,
                 "is_active": True,
