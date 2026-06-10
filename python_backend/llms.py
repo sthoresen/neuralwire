@@ -213,10 +213,17 @@ class LLMProviderManager:
         for _ in range(provider.get('retries', 1)):
             try:
                 completion = client.chat.completions.create(**kwargs)
+                if not completion.choices:
+                    print(f'  [{name}] null/empty choices, retrying...', flush=True)
+                    time.sleep(backoff)
+                    backoff *= 2
+                    continue
                 content    = completion.choices[0].message.content
                 if not content:
-                    print(f'  [{name}] empty content (reasoning model hit token limit?), skipping', flush=True)
-                    return None, None
+                    print(f'  [{name}] empty content (reasoning model hit token limit?), retrying...', flush=True)
+                    time.sleep(backoff)
+                    backoff *= 2
+                    continue
                 return content.strip(), name
 
             except Exception as e:
@@ -227,12 +234,9 @@ class LLMProviderManager:
                     return None, None
 
                 print(f'  [{name}] error: {error_msg}', flush=True)
-                if "429" in error_msg:
-                    time.sleep(backoff)
-                    backoff *= 2
-                    continue
-
-                return None, None
+                time.sleep(backoff)
+                backoff *= 2
+                continue
 
         return None, None
 
