@@ -37,6 +37,23 @@ class AnalysisResult:
     error_msg: str = ""
 
 
+@dataclass
+class RunStats:
+    start_time: float = field(default_factory=time.time)
+    batch_size: int = 0
+    regex_skipped: int = 0
+    llm_skipped: int = 0
+    passed: int = 0
+    scrape_attempted: int = 0
+    scrape_success: int = 0
+    scrape_failed: int = 0
+    no_content: int = 0
+    no_insight: int = 0
+    llm_error: int = 0
+    saved: dict = field(default_factory=dict)       # {ticker: count}
+    models_used: dict = field(default_factory=dict)  # {model_name: count}
+
+
 def generate_context_prompt(ticker="NVDA"):
     """
     Builds the Master Context string for your AI Agent.
@@ -500,7 +517,7 @@ def _is_llm_noise(headline: str, api_summary: str) -> bool:
     return result.strip().upper().startswith("NO")
 
 
-def _run_pre_filter(articles: list[dict]) -> list[dict]:
+def _run_pre_filter(articles: list[dict], stats: RunStats = None) -> list[dict]:
     """
     Removes obvious noise before scraping or full LLM analysis.
     Stage 1: free regex on headline.
@@ -534,6 +551,12 @@ def _run_pre_filter(articles: list[dict]) -> list[dict]:
         print(f"  [pre-filter] LLM skipped {len(llm_skip_ids)} articles")
 
     print(f"  [pre-filter] {len(survivors)}/{len(articles)} articles proceed to full analysis")
+
+    if stats is not None:
+        stats.regex_skipped = len(regex_skip)
+        stats.llm_skipped = len(llm_skip_ids)
+        stats.passed = len(survivors)
+
     return survivors
 
 
@@ -553,28 +576,91 @@ def _get_active_tickers() -> set[str]:
         return set()
 
 
+def _print_run_summary(stats: RunStats):
+    conn = get_conn()
+    c = conn.cursor()
+
+    # Backlog: articles still pending after this run
+    c.execute("SELECT COUNT(*) FROM articles WHERE analysis_status = 'pending'")
+    backlog = c.fetchone()[0]
+
+    # Last analysis timestamp per active watchlist tickers only
+    c.execute("""
+        SELECT ar.ticker, MAX(ar.run_at)
+        FROM analysis_runs ar
+        WHERE ar.ticker IN (
+            SELECT DISTINCT ticker FROM ticker_artefacts
+            WHERE artefact_type = 'header_description'
+        )
+        GROUP BY ar.ticker
+        ORDER BY ar.ticker
+    """)
+    last_per_ticker = c.fetchall()
+    conn.close()
+
+    elapsed = time.time() - stats.start_time
+    mins, secs = divmod(int(elapsed), 60)
+    duration_str = f"{mins}m {secs:02d}s"
+
+    total_saved = sum(stats.saved.values())
+    saved_parts = "  ".join(f"{t}={n}" for t, n in sorted(stats.saved.items()))
+    saved_str = f"{saved_parts}  (total={total_saved})" if saved_parts else "none"
+
+    models_str = "  ".join(f"{m}={n}" for m, n in sorted(stats.models_used.items(), key=lambda x: -x[1]))
+    if not models_str:
+        models_str = "none"
+
+    lines = [
+        "",
+        "=" * 50,
+        "=== Run Summary ===",
+        f"  Duration:          {duration_str}",
+        f"  Batch fetched:     {stats.batch_size}",
+        f"  Backlog remaining: {backlog} pending",
+        f"  Pre-filter:        regex={stats.regex_skipped}  llm={stats.llm_skipped}  passed={stats.passed}",
+        f"  Scrape:            attempted={stats.scrape_attempted}  success={stats.scrape_success}  failed={stats.scrape_failed}",
+        f"  Analysis:          no_content={stats.no_content}  no_insight={stats.no_insight}  llm_error={stats.llm_error}",
+        f"  Saved:             {saved_str}",
+        f"  Models used:       {models_str}",
+    ]
+
+    if last_per_ticker:
+        lines.append("  Last analysis per ticker:")
+        for ticker, ts in last_per_ticker:
+            ts_str = str(ts)[:16] if ts else "never"
+            lines.append(f"    {ticker:<6} {ts_str}")
+
+    lines.append("=" * 50)
+    print("\n".join(lines), flush=True)
+
+
 def run_pending_pipeline(limit=20):
     """
     Fetches up to `limit` unanalyzed articles from the DB and runs them
     through the full scrape + analyze + save pipeline.
     """
+    stats = RunStats()
     articles = database.get_pending_articles(limit=limit)
 
     if not articles:
         print("No pending articles found.")
         return []
 
+    stats.batch_size = len(articles)
     print(f"Found {len(articles)} pending articles. Starting pipeline...")
     print("--- Pre-filtering ---")
-    articles = _run_pre_filter(articles)
+    articles = _run_pre_filter(articles, stats=stats)
     if not articles:
         print("All articles filtered out. Done.")
+        _print_run_summary(stats)
         return []
 
-    return run_analysis_pipeline(articles)
+    run_analysis_pipeline(articles, stats=stats)
+    _print_run_summary(stats)
+    return articles
 
 
-def run_analysis_pipeline(articles: list[dict]):
+def run_analysis_pipeline(articles: list[dict], stats: RunStats = None):
     """
     1. Hydrate (Load existing text)
     2. Scrape (Fetch missing text)
@@ -585,36 +671,42 @@ def run_analysis_pipeline(articles: list[dict]):
 
     # --- STAGE 1: HYDRATION & SCRAPING PREP ---
     articles_to_scrape = []
-    
+
     for article in articles:
         # Check if we already have text in memory or DB
         if article.get('full_text'):
             continue
-            
+
         # Check DB for content
         existing_text = database.get_article_text(article['id'])
         if existing_text:
             article['full_text'] = existing_text
         else:
             articles_to_scrape.append(article)
-    
+
     # --- STAGE 2: BATCH SCRAPING ---
     if articles_to_scrape:
         print(f"--- Scraping {len(articles_to_scrape)} articles ---")
+        if stats is not None:
+            stats.scrape_attempted = len(articles_to_scrape)
         text_map = news_reporter.parallel_fetch_texts(articles_to_scrape)
-        
+
         for i, article in enumerate(articles_to_scrape):
             full_text = text_map.get(i)
-            
+
             if full_text:
                 article['full_text'] = full_text
                 database.mark_scrape_success_and_save(article['id'], full_text)
+                if stats is not None:
+                    stats.scrape_success += 1
             else:
                 database.mark_scrape_failed(article['id'], "Scraper returned empty")
+                if stats is not None:
+                    stats.scrape_failed += 1
 
     # --- STAGE 3: ANALYSIS & SAVING ---
     print(f"\n--- Analyzing {total} articles ---")
-    
+
     for i, article in enumerate(articles):
         headline = article.get('headline', 'Unknown')[:30]
         print(f"[{i+1}/{total}] {headline}...", end="", flush=True)
@@ -622,18 +714,24 @@ def run_analysis_pipeline(articles: list[dict]):
         # Skip if scrape failed completely
         if not article.get('full_text') and not article.get('api_summary'):
              print(" -> SKIPPING (No content)")
+             if stats is not None:
+                 stats.no_content += 1
              continue
 
         # 1. CALL LLM LAYER
         results = analyze_article_impact(article)
-        
+
         if results is None:
             print(" -> LLM error, skipping (will retry next run).")
+            if stats is not None:
+                stats.llm_error += 1
             continue
 
         if not results:
             print(" -> No actionable insights found.")
             database.mark_analysis_done(article['id'])
+            if stats is not None:
+                stats.no_insight += 1
             continue
 
         # 2. SAVE RESULTS
@@ -642,9 +740,9 @@ def run_analysis_pipeline(articles: list[dict]):
             if not res.success:
                 print(f" -> Error: {res.error_msg}")
                 continue
-                
+
             data = res.data
-            
+
             # Safe extraction using .get()
             saved = database.save_analysis_result(
                 article_id=article['id'],
@@ -660,7 +758,11 @@ def run_analysis_pipeline(articles: list[dict]):
                 importance=data.get('importance_score', 0),
                 full_text=article.get('full_text') # Ensure text is synced
             )
-            if saved: count += 1
+            if saved:
+                count += 1
+                if stats is not None:
+                    stats.saved[res.ticker] = stats.saved.get(res.ticker, 0) + 1
+                    stats.models_used[res.model_name] = stats.models_used.get(res.model_name, 0) + 1
 
         print(f" -> Saved {count} ticker insights.")
         time.sleep(1.5) # Rate limiting

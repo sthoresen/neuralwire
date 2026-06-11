@@ -210,17 +210,20 @@ class LLMProviderManager:
         if reasoning is not None and provider.get("supports_reasoning"):
             kwargs["extra_body"] = {"reasoning": {"enabled": reasoning}}
 
-        for _ in range(provider.get('retries', 1)):
+        retries = provider.get('retries', 1)
+        last_failure = None
+
+        for attempt in range(retries):
             try:
                 completion = client.chat.completions.create(**kwargs)
                 if not completion.choices:
-                    print(f'  [{name}] null/empty choices, retrying...', flush=True)
+                    last_failure = "null/empty choices"
                     time.sleep(backoff)
                     backoff *= 2
                     continue
-                content    = completion.choices[0].message.content
+                content = completion.choices[0].message.content
                 if not content:
-                    print(f'  [{name}] empty content (reasoning model hit token limit?), retrying...', flush=True)
+                    last_failure = "empty content (reasoning model hit token limit?)"
                     time.sleep(backoff)
                     backoff *= 2
                     continue
@@ -232,12 +235,15 @@ class LLMProviderManager:
                     print(f"  [{name}] daily limit reached. Disabling.", flush=True)
                     provider["is_active"] = False
                     return None, None
-
-                print(f'  [{name}] error: {error_msg}', flush=True)
+                if "429" in error_msg:
+                    last_failure = "rate-limited (429)"
+                else:
+                    last_failure = error_msg[:120]
                 time.sleep(backoff)
                 backoff *= 2
                 continue
 
+        print(f'  [{name}] failed after {retries} attempt(s): {last_failure}', flush=True)
         return None, None
 
     # ── Public API ─────────────────────────────────────────────────────────────
