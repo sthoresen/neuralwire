@@ -1,7 +1,7 @@
 import requests
 from datetime import datetime
 import trafilatura
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 
 import database
 import utils
@@ -168,7 +168,7 @@ def parallel_fetch_texts(articles):
     tasks = [{'index': i, 'url': a.get('url')} for i, a in enumerate(articles)]
     results = {}
     
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+    with ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
         future_results = executor.map(fetch_single_url, tasks)
         for idx, text in future_results:
             results[idx] = text
