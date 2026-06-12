@@ -772,6 +772,59 @@ def run_analysis_pipeline(articles: list[dict], stats: RunStats = None):
 
 # ── Ticker Completion Pipeline ────────────────────────────────────────────────
 
+def _artefact_age_days(ticker: str, artefact_type: str):
+    """Returns age of the most recent artefact in days, or None if it doesn't exist."""
+    from datetime import datetime, timezone
+    artefact = database.get_ticker_artefact(ticker, artefact_type)
+    if not artefact or not artefact.get('generated_at'):
+        return None
+    generated_at = artefact['generated_at']
+    if generated_at.tzinfo is None:
+        generated_at = generated_at.replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - generated_at).total_seconds() / 86400
+
+
+def refresh_ticker_artefacts(ticker: str, max_age_days: int = 7, force: bool = False):
+    """
+    Regenerates monthly_news_flow and focal_points for a ticker if stale.
+
+    max_age_days: regenerate if artefact is older than this many days.
+    force: skip the age check and always regenerate (used for event-triggered refresh).
+
+    focal_points always regenerates if monthly_news_flow was just regenerated,
+    since it reads monthly_news_flow from the DB.
+    """
+    print(f"[refresh_artefacts] {ticker} (max_age_days={max_age_days}, force={force})")
+
+    mnf_age = _artefact_age_days(ticker, 'monthly_news_flow')
+    mnf_stale = force or mnf_age is None or mnf_age > max_age_days
+    mnf_regenerated = False
+
+    if mnf_stale:
+        reason = "forced" if force else ("missing" if mnf_age is None else f"age={mnf_age:.1f}d")
+        print(f"[refresh_artefacts] {ticker} monthly_news_flow regenerating ({reason})")
+        try:
+            generate_monthly_news_flow(ticker)
+            mnf_regenerated = True
+        except Exception as e:
+            print(f"[refresh_artefacts] {ticker} monthly_news_flow FAILED: {e}")
+    else:
+        print(f"[refresh_artefacts] {ticker} monthly_news_flow ok (age={mnf_age:.1f}d)")
+
+    fp_age = _artefact_age_days(ticker, 'focal_points')
+    fp_stale = force or fp_age is None or fp_age > max_age_days or mnf_regenerated
+
+    if fp_stale:
+        reason = "forced" if force else ("missing" if fp_age is None else ("mnf updated" if mnf_regenerated else f"age={fp_age:.1f}d"))
+        print(f"[refresh_artefacts] {ticker} focal_points regenerating ({reason})")
+        try:
+            generate_focal_points(ticker)
+        except Exception as e:
+            print(f"[refresh_artefacts] {ticker} focal_points FAILED: {e}")
+    else:
+        print(f"[refresh_artefacts] {ticker} focal_points ok (age={fp_age:.1f}d)")
+
+
 def run_ticker_completion_pipeline(ticker: str, force: bool = False) -> dict:
     """
     Given a ticker whose summaries rows are complete, generates all artefacts

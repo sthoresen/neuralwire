@@ -37,6 +37,12 @@ def job_analysis():
 def job_earnings():
     run_script(os.path.join(BASE_DIR, "run_earnings.py"))
 
+def job_events():
+    run_script(os.path.join(BASE_DIR, "run_events.py"))
+
+def job_artefacts():
+    run_script(os.path.join(BASE_DIR, "run_artefacts.py"))
+
 def job_sync_prices():
     run_script(os.path.join(BASE_DIR, "run_sync_daily_prices.py"))
 
@@ -52,6 +58,12 @@ if __name__ == "__main__":
 
     # Ingest earnings transcripts — daily at 06:00 UTC
     scheduler.add_job(job_earnings, CronTrigger.from_crontab("0 6 * * *"), id="earnings")
+
+    # Scan analyzed articles for ticker events — every 4 hours
+    scheduler.add_job(job_events, CronTrigger.from_crontab("0 */4 * * *"), id="events")
+
+    # Refresh stale artefacts (monthly_news_flow, focal_points) — daily at 05:00 UTC
+    scheduler.add_job(job_artefacts, CronTrigger.from_crontab("0 5 * * *"), id="artefacts")
 
     # Sync daily prices — weekdays at 22:00 UTC (after NYSE close)
     scheduler.add_job(job_sync_prices, CronTrigger.from_crontab("0 22 * * 1-5"), id="sync_prices")
