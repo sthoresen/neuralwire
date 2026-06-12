@@ -177,6 +177,7 @@ def run(ticker: str, limit: int, fiscal_year: int | None,
     print(f"\nDone. {saved}/{total} transcripts {'saved' if commit else 'would be saved'}.")
     if not commit:
         print("Pass --commit to write to DB.")
+    return saved
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────

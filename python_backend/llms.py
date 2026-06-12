@@ -164,9 +164,9 @@ class LLMProviderManager:
         # xAI Direct is kept separate — used only by call_grok_with_search.
         # It requires the xAI SDK and is never eligible for call() routing.
         self.xai_config = {
-            "name": "xAI Direct (Grok 4.1 Fast)",
+            "name": "xAI Direct (Grok 4.3)",
             "api_key": XAI_API_KEY,
-            "model": "grok-4-1-fast-reasoning",
+            "model": "grok-4.3",
             "active": bool(XAI_API_KEY),
         }
 
@@ -308,11 +308,20 @@ class LLMProviderManager:
             raise RuntimeError(f"call_model: '{model_id}' failed to produce a response.")
         return result, name
 
-    def call_grok_with_search(self, prompt, print_reasoning=False):
+    def call_grok_with_search(
+        self,
+        prompt,
+        print_reasoning=False,
+        allowed_x_handles=None,
+        excluded_x_handles=None,
+        from_date=None,
+        to_date=None,
+        enable_image_understanding=False,
+        enable_video_understanding=False,
+    ):
         """
-        Calls Grok with x_search enabled using the xAI SDK.
-        This path is intentionally separate — x_search requires the xAI SDK's
-        internal agentic loop and cannot be routed through call().
+        Calls Grok 4.3 with x_search enabled using the xAI SDK.
+        Supports advanced X search filtering, timing constraints, and multimodal understanding.
         """
         if not self.xai_config.get("active"):
             raise RuntimeError(
@@ -326,13 +335,30 @@ class LLMProviderManager:
         except ImportError:
             raise RuntimeError("xai-sdk is not installed. Run: pip install xai-sdk")
 
+        if allowed_x_handles and excluded_x_handles:
+            raise ValueError("allowed_x_handles and excluded_x_handles cannot be set together.")
+
         now = datetime.datetime.now()
         full_prompt = f"Today's date and time is {now.strftime('%A, %B %d, %Y at %I:%M %p')}.\n\n{prompt}"
+
+        search_kwargs = {}
+        if allowed_x_handles:
+            search_kwargs["allowed_x_handles"] = allowed_x_handles
+        if excluded_x_handles:
+            search_kwargs["excluded_x_handles"] = excluded_x_handles
+        if from_date:
+            search_kwargs["from_date"] = from_date
+        if to_date:
+            search_kwargs["to_date"] = to_date
+        if enable_image_understanding:
+            search_kwargs["enable_image_understanding"] = enable_image_understanding
+        if enable_video_understanding:
+            search_kwargs["enable_video_understanding"] = enable_video_understanding
 
         client = Client(api_key=self.xai_config['api_key'])
         chat   = client.chat.create(
             model=self.xai_config['model'],
-            tools=[x_search()],
+            tools=[x_search(**search_kwargs)],
             include=["verbose_streaming"],
         )
         chat.append(xai_user(full_prompt))

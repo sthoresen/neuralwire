@@ -196,7 +196,7 @@ def _build_monthly_context(ticker: str, lookback_days: int = 30) -> dict:
     c.execute('''
         SELECT period_value, short_content, content
         FROM summaries
-        WHERE ticker = ? AND period_type = 'yearly'
+        WHERE ticker = %s AND period_type = 'yearly'
         ORDER BY period_value DESC
         LIMIT 1
     ''', (ticker,))
