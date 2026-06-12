@@ -551,14 +551,14 @@ def mark_analysis_done(article_id):
 
 def get_pending_articles(limit=20):
     """
-    Fetches articles that haven't been analyzed yet, ordered oldest-first.
+    Fetches articles that haven't been analyzed yet, newest first.
     """
     conn = get_conn(dict_cursor=True)
     c = conn.cursor()
     c.execute('''
         SELECT * FROM articles
         WHERE analysis_status = 'pending'
-        ORDER BY published_at ASC
+        ORDER BY published_at DESC
         LIMIT %s
     ''', (limit,))
     rows = [dict(row) for row in c.fetchall()]
