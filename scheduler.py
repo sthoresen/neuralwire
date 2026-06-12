@@ -10,7 +10,6 @@ import sys
 import os
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
-from apscheduler.triggers.interval import IntervalTrigger
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -31,9 +30,6 @@ def run_script(script_path: str):
 def job_fetch():
     run_script(os.path.join(BASE_DIR, "run_fetch.py"))
 
-def job_analysis():
-    run_script(os.path.join(BASE_DIR, "run_analysis.py"))
-
 def job_earnings():
     run_script(os.path.join(BASE_DIR, "run_earnings.py"))
 
@@ -52,9 +48,6 @@ if __name__ == "__main__":
 
     # Fetch new articles — every 2 hours
     scheduler.add_job(job_fetch, CronTrigger.from_crontab("0 */2 * * *"), id="fetch")
-
-    # Analyze pending articles — runs continuously with 5-minute cooldown between runs
-    scheduler.add_job(job_analysis, IntervalTrigger(minutes=5), id="analysis")
 
     # Ingest earnings transcripts — daily at 06:00 UTC
     scheduler.add_job(job_earnings, CronTrigger.from_crontab("0 6 * * *"), id="earnings")
