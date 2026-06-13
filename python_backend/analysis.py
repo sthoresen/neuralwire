@@ -54,68 +54,6 @@ class RunStats:
     models_used: dict = field(default_factory=dict)  # {model_name: count}
 
 
-def generate_context_prompt(ticker="NVDA"):
-    """
-    Builds the Master Context string for your AI Agent.
-    Combines: Master History + Latest 5-Year + Detailed Recent Years + Breaking News
-    """
-    conn = get_conn()
-    c = conn.cursor()
-
-    # A. Master Summary
-    c.execute("SELECT content FROM summaries WHERE ticker=%s AND period_type='master'", (ticker,))
-    row = c.fetchone()
-    pm = row[0] if row else "No master summary available."
-
-    # B. Latest 5-Year Era
-    c.execute('''
-        SELECT period_value, content FROM summaries
-        WHERE ticker=%s AND period_type='five_year'
-        ORDER BY period_value DESC LIMIT 1
-    ''', (ticker,))
-    p5_row = c.fetchone()
-    p5_text = f"Period {p5_row[0]}: {p5_row[1]}" if p5_row else "No 5-year summary available."
-
-    # C. Latest 3 Years (Detailed)
-    c.execute('''
-        SELECT period_value, short_content, content FROM summaries
-        WHERE ticker=%s AND period_type='yearly'
-        ORDER BY period_value DESC LIMIT 3
-    ''', (ticker,))
-    p3_string = ""
-    for year, short, extended in c.fetchall():
-        text = short if short else (extended[:500] + "...")
-        p3_string += f"\n[{year}]\n{text}\n"
-
-    # D. Breaking News (From Analysis Runs)
-    # Fetches high-relevance (>80) AI summaries from the last 7 days
-    c.execute('''
-        SELECT ar.ai_summary, a.headline, ar.relevancy_score
-        FROM analysis_runs ar
-        JOIN articles a ON ar.article_id = a.id
-        WHERE a.ticker=%s
-          AND ar.relevancy_score > 80
-          AND a.published_at > NOW() - INTERVAL '7 days'
-        ORDER BY ar.relevancy_score DESC, a.published_at DESC
-        LIMIT 5
-    ''', (ticker,))
-
-    news_rows = c.fetchall()
-    news_section = ""
-    if news_rows:
-        news_section = "\n=== BREAKING NEWS (Last 7 Days) ===\n"
-        for summary, headline, score in news_rows:
-            news_section += f"- [Score {score}] {headline}: {summary[:200]}...\n"
-
-    conn.close()
-
-    return (
-        f"=== MASTER HISTORY ===\n{pm}\n\n"
-        f"=== CURRENT ERA ({ticker}) ===\n{p5_text}\n\n"
-        f"=== RECENT ANNUAL PERFORMANCE ===\n{p3_string}"
-        f"{news_section}"
-    )
-
 def _build_monthly_context(ticker: str, lookback_days: int = 30) -> dict:
     """
     Assembles the four context blocks fed into the monthly news flow prompt.
