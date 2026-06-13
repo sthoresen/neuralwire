@@ -32,7 +32,6 @@ python_backend/temp_*.txt
 
 # ── One-off scripts ───────────────────────────────────────────────────────────
 python_backend/test_db_connection.py
-python_backend/event_pipeline.py
 
 # ── Tool / IDE config ─────────────────────────────────────────────────────────
 .claude/settings.local.json
