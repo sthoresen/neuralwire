@@ -23,7 +23,7 @@ SLEEP_BETWEEN   = 0.5
 
 def sync_ticker(ticker: str):
     latest = market_data.get_latest_price_date(ticker)
-    end    = str(date.today() - timedelta(days=1))
+    end    = str(date.today())
 
     if latest is None:
         print(f"  [{ticker}] No data — run backfill_prices.py first.")

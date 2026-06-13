@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 
 import database
 import market_data
+import sync_intraday
 import ticker_colors as tc
 import ticker_classification as tclass
 import utils
@@ -103,23 +104,8 @@ def _intraday_is_stale(ticker: str) -> bool:
 def _refresh_intraday(db_ticker: str):
     """Background task: fetch latest minute bars from Alpaca and upsert into DB."""
     try:
-        from datetime import date, timedelta, datetime as dt
-        import alpaca
-
-        latest = market_data.get_latest_intraday_timestamp(db_ticker)
-        if latest:
-            start = str((dt.fromisoformat(latest.replace(" ", "T")) + timedelta(minutes=1)).date())
-        else:
-            start = str(date.today())
-        end = str(date.today())
-
-        bars = alpaca.get_bars(utils.to_alpaca_ticker(db_ticker), "1Min", start, end)
-        if not bars:
-            return
-
-        rows = alpaca.bars_to_intraday_rows(db_ticker, bars)
-        market_data.bulk_insert_intraday(rows)
-        print(f"[intraday refresh] {db_ticker}: upserted {len(rows)} bars", flush=True)
+        inserted = sync_intraday.sync_ticker_intraday(db_ticker)
+        print(f"[intraday refresh] {db_ticker}: upserted {inserted} bars", flush=True)
     except Exception as e:
         print(f"[intraday refresh] {db_ticker} ERROR: {e}", flush=True)
 
@@ -127,10 +113,12 @@ def _refresh_intraday(db_ticker: str):
 @app.get("/ticker/{ticker}/intraday")
 def ticker_intraday(ticker: str, background_tasks: BackgroundTasks):
     """Return intraday (1-min) prices. Triggers a background refresh if market is open and data is stale."""
+    from datetime import date, timedelta
     ticker = utils.to_db_ticker(ticker.upper())
     if _market_is_open() and _intraday_is_stale(ticker):
         background_tasks.add_task(_refresh_intraday, ticker)
-    rows = market_data.get_intraday(ticker)
+    window_start = str(date.today() - timedelta(days=7))
+    rows = market_data.get_intraday(ticker, start=window_start)
     return {"ticker": utils.to_display_ticker(ticker), "intraday": rows or [], "market_open": _market_is_open()}
 
 

@@ -120,11 +120,13 @@ export default function ScreenerPage() {
     };
   }, [ticker]);
 
-  // Derived price values — use latest intraday close when available, else last daily bar
+  // Derived price values — use latest intraday close when fresh, else last daily bar
   const lastDailyClose  = prices.length ? prices[prices.length - 1].close : null;
   const prevDailyClose  = prices.length > 1 ? prices[prices.length - 2].close : lastDailyClose;
-  const latestPrice     = intraday.length ? intraday[intraday.length - 1].close : lastDailyClose;
-  const prevPrice       = intraday.length ? (lastDailyClose ?? latestPrice) : (prevDailyClose ?? latestPrice);
+  const lastIntradayMs  = intraday.length ? new Date(intraday[intraday.length - 1].timestamp).getTime() : 0;
+  const intradayFresh   = intraday.length > 0 && (Date.now() - lastIntradayMs) < 3 * 24 * 60 * 60 * 1000;
+  const latestPrice     = intradayFresh ? intraday[intraday.length - 1].close : lastDailyClose;
+  const prevPrice       = intradayFresh ? (lastDailyClose ?? latestPrice) : (prevDailyClose ?? latestPrice);
   const priceChange     = latestPrice != null && prevPrice != null ? latestPrice - prevPrice : null;
   const pricePct        = priceChange != null && prevPrice ? (priceChange / prevPrice) * 100 : null;
   const up              = (priceChange ?? 0) >= 0;

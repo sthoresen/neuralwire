@@ -42,6 +42,9 @@ def job_artefacts():
 def job_sync_prices():
     run_script(os.path.join(BASE_DIR, "run_sync_daily_prices.py"))
 
+def job_sync_intraday():
+    run_script(os.path.join(BASE_DIR, "run_sync_intraday.py"))
+
 
 if __name__ == "__main__":
     scheduler = BlockingScheduler(timezone="UTC")
@@ -60,6 +63,9 @@ if __name__ == "__main__":
 
     # Sync daily prices — weekdays at 22:00 UTC (after NYSE close)
     scheduler.add_job(job_sync_prices, CronTrigger.from_crontab("0 22 * * 1-5"), id="sync_prices")
+
+    # Sync intraday 1-min bars — weekdays at 21:15 UTC (15 min after NYSE close)
+    scheduler.add_job(job_sync_intraday, CronTrigger.from_crontab("15 21 * * 1-5"), id="sync_intraday")
 
     print("[scheduler] Started. Jobs scheduled:", flush=True)
     for job in scheduler.get_jobs():

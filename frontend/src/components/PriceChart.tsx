@@ -58,9 +58,10 @@ interface Props {
 }
 
 export default function PriceChart({ prices, intraday, accent }: Props) {
-  // Augment daily prices with today's live intraday close as a synthetic point
-  const latestIntraday = intraday.length ? intraday[intraday.length - 1] : null;
-  const todayDate = latestIntraday ? latestIntraday.timestamp.slice(0, 10) : null;
+  // Augment daily prices with today's live intraday close as a synthetic point (only when fresh)
+  const latestIntraday  = intraday.length ? intraday[intraday.length - 1] : null;
+  const intradayFresh   = latestIntraday != null && (Date.now() - new Date(latestIntraday.timestamp).getTime()) < 3 * 24 * 60 * 60 * 1000;
+  const todayDate       = intradayFresh ? latestIntraday!.timestamp.slice(0, 10) : null;
   const effectivePrices: PricePoint[] = (todayDate && prices.length && prices[prices.length - 1].date < todayDate)
     ? [...prices, { date: todayDate, close: latestIntraday!.close }]
     : prices;
