@@ -549,6 +549,24 @@ def mark_analysis_done(article_id):
         conn.close()
 
 
+def get_active_tickers() -> list[str]:
+    """Returns the list of tickers the system actively tracks, ordered alphabetically."""
+    try:
+        conn = get_conn()
+        c = conn.cursor()
+        c.execute("""
+            SELECT DISTINCT ticker FROM ticker_artefacts
+            WHERE artefact_type = 'header_description'
+            ORDER BY ticker
+        """)
+        rows = c.fetchall()
+        conn.close()
+        return [r[0] for r in rows] if rows else ["NVDA"]
+    except Exception as e:
+        print(f"WARNING: could not query active tickers ({e}), falling back to NVDA")
+        return ["NVDA"]
+
+
 def get_pending_articles(limit=20):
     """
     Fetches articles that haven't been analyzed yet, newest first.

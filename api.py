@@ -38,19 +38,7 @@ app.add_middleware(
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 def _available_tickers() -> list[str]:
-    try:
-        conn = get_conn()
-        c = conn.cursor()
-        c.execute("""
-            SELECT DISTINCT ticker FROM ticker_artefacts
-            WHERE artefact_type = 'header_description'
-            ORDER BY ticker
-        """)
-        rows = c.fetchall()
-        conn.close()
-        return [utils.to_display_ticker(r[0]) for r in rows] if rows else ["NVDA"]
-    except Exception:
-        return ["NVDA"]
+    return [utils.to_display_ticker(t) for t in database.get_active_tickers()]
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────

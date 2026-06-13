@@ -561,19 +561,7 @@ def _run_pre_filter(articles: list[dict], stats: RunStats = None) -> list[dict]:
 
 
 def _get_active_tickers() -> set[str]:
-    """Returns the set of tickers the system actively tracks."""
-    try:
-        conn = get_conn()
-        c = conn.cursor()
-        c.execute("""
-            SELECT DISTINCT ticker FROM ticker_artefacts
-            WHERE artefact_type = 'header_description'
-        """)
-        rows = c.fetchall()
-        conn.close()
-        return {r[0] for r in rows} if rows else set()
-    except Exception:
-        return set()
+    return set(database.get_active_tickers())
 
 
 def _print_run_summary(stats: RunStats):

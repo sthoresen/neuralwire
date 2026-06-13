@@ -29,20 +29,7 @@ TICKERS_PER_CYCLE = 2
 
 
 def get_active_tickers() -> list[str]:
-    try:
-        conn = get_conn()
-        c = conn.cursor()
-        c.execute("""
-            SELECT DISTINCT ticker FROM ticker_artefacts
-            WHERE artefact_type = 'header_description'
-            ORDER BY ticker
-        """)
-        rows = c.fetchall()
-        conn.close()
-        return [r[0] for r in rows] if rows else ["NVDA"]
-    except Exception as e:
-        print(f"WARNING: could not query active tickers ({e}), falling back to NVDA")
-        return ["NVDA"]
+    return database.get_active_tickers()
 
 
 def get_next_tickers(all_tickers: list[str]) -> list[str]:
