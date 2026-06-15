@@ -65,12 +65,15 @@ export default function PriceChart({ prices, intraday, accent }: Props) {
   const effectivePrices: PricePoint[] = (todayDate && prices.length && prices[prices.length - 1].date < todayDate)
     ? [...prices, { date: todayDate, close: latestIntraday!.close }]
     : prices;
-  const containerRef    = useRef<HTMLDivElement>(null);
-  const tooltipRef      = useRef<HTMLDivElement>(null);
-  const chartRef        = useRef<IChartApi | null>(null);
-  const seriesRef       = useRef<ISeriesApi<"Area"> | null>(null);
+  const containerRef      = useRef<HTMLDivElement>(null);
+  const tooltipRef        = useRef<HTMLDivElement>(null);
+  const chartRef          = useRef<IChartApi | null>(null);
+  const seriesRef         = useRef<ISeriesApi<"Area"> | null>(null);
   const [activeRange, setActiveRange] = useState<RangeLabel>("1Y");
-  const activeRangeRef  = useRef<RangeLabel>("1Y");
+  const activeRangeRef    = useRef<RangeLabel>("1Y");
+  // Tracks whether the currently rendered data is intraday (minute bars) or daily bars.
+  // Needed so the tooltip can show time for real intraday data but not for daily-bar fallbacks.
+  const usingIntradayRef  = useRef(false);
 
   // Build chart once on mount / when accent changes
   useEffect(() => {
@@ -126,15 +129,33 @@ export default function PriceChart({ prices, intraday, accent }: Props) {
         return;
       }
 
-      // Format date from UTCTimestamp
-      const ts   = (param.time as number) * 1000;
-      const date = new Date(ts);
-      const dateStr = date.toLocaleDateString("en-US", {
-        month: "short", day: "numeric", year: "numeric", timeZone: "UTC",
-      });
+      // Format label depending on whether we're showing intraday (minute) or daily data
+      const ts  = (param.time as number) * 1000;
+      const d   = new Date(ts);
+      let label: string;
+
+      if (usingIntradayRef.current) {
+        const timeStr = d.toLocaleTimeString("en-US", {
+          hour: "numeric", minute: "2-digit", hour12: true,
+        });
+        if (activeRangeRef.current === "1D") {
+          // Single day — time is enough
+          label = timeStr;
+        } else {
+          // 5D — show abbreviated weekday + date so each day is identifiable
+          const dayStr = d.toLocaleDateString("en-US", {
+            weekday: "short", month: "short", day: "numeric",
+          });
+          label = `${dayStr} · ${timeStr}`;
+        }
+      } else {
+        label = d.toLocaleDateString("en-US", {
+          month: "short", day: "numeric", year: "numeric", timeZone: "UTC",
+        });
+      }
 
       tooltip.innerHTML = `
-        <span style="color:var(--sn-text-tertiary);font-size:10px">${dateStr}</span>
+        <span style="color:var(--sn-text-tertiary);font-size:10px">${label}</span>
         <span style="color:var(--sn-text);font-size:13px;font-weight:500">$${price.value.toFixed(2)}</span>
       `;
 
@@ -175,14 +196,17 @@ export default function PriceChart({ prices, intraday, accent }: Props) {
       const slice        = sliceIntraday(intraday, cutoffSec);
 
       if (slice.length > 0) {
+        usingIntradayRef.current = true;
         chartData = slice.map((r) => ({ time: toUTC(r.timestamp), value: r.close }));
       } else {
         // Intraday data exists but is too sparse — fall back to last N daily bars
+        usingIntradayRef.current = false;
         chartData = effectivePrices
           .slice(-cutoffDays)
           .map((r) => ({ time: toUTC(r.date), value: r.close }));
       }
     } else {
+      usingIntradayRef.current = false;
       let fromDate: string;
       switch (label) {
         case "1M":  fromDate = offsetDate(lastDaily, 1);   break;
