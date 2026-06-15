@@ -136,7 +136,7 @@ export default function PriceChart({ prices, intraday, accent }: Props) {
 
       if (usingIntradayRef.current) {
         const timeStr = d.toLocaleTimeString("en-US", {
-          hour: "numeric", minute: "2-digit", hour12: true,
+          hour: "numeric", minute: "2-digit", hour12: true, timeZone: "America/New_York",
         });
         if (activeRangeRef.current === "1D") {
           // Single day — time is enough
@@ -144,7 +144,7 @@ export default function PriceChart({ prices, intraday, accent }: Props) {
         } else {
           // 5D — show abbreviated weekday + date so each day is identifiable
           const dayStr = d.toLocaleDateString("en-US", {
-            weekday: "short", month: "short", day: "numeric",
+            weekday: "short", month: "short", day: "numeric", timeZone: "America/New_York",
           });
           label = `${dayStr} · ${timeStr}`;
         }
