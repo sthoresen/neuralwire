@@ -11,7 +11,7 @@ DSN = (
     or "host=localhost port=5432 dbname=stocknews user=stocknews password=stocknews"
 )
 
-print(f'DSN loaded = {DSN}')
+print("DB: connecting via DATABASE_URL" if os.environ.get("DATABASE_URL") else "DB: connecting via local fallback")
 
 
 def get_conn(dict_cursor: bool = False):
