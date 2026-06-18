@@ -25,7 +25,8 @@ export default function TopNav() {
     document.documentElement.setAttribute("data-theme", next);
   }
 
-  const pageName = ticker ? (isCoverage ? "Coverage" : "Screener") : "";
+  const isAbout = pathname === "/about";
+  const pageName = isAbout ? "About" : ticker ? (isCoverage ? "Coverage" : "Screener") : "";
 
   return (
     <nav
@@ -39,6 +40,14 @@ export default function TopNav() {
       {/* Logo */}
       <span className="font-serif text-[15px] font-bold tracking-tight text-[var(--sn-text)]">
         Pulse
+      </span>
+
+      {/* Alpha badge */}
+      <span
+        className="font-mono text-[9px] font-bold uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-[3px]"
+        style={{ color: "var(--sn-amber)", background: "rgba(245,158,11,0.12)" }}
+      >
+        Alpha
       </span>
 
       {/* Divider */}

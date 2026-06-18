@@ -9,14 +9,16 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 const PER_PAGE = 10;
 
-function statColor(v: number, accent: string): string {
-  if (v >= 70) return accent;
-  if (v >= 40) return "#f59e0b";
-  return "#71717a";
+// Neutral grayscale intensity — independent of the ticker theme so the same
+// score always looks the same regardless of which ticker is selected.
+function statColor(v: number): string {
+  if (v >= 70) return "var(--sn-text)";
+  if (v >= 40) return "var(--sn-text-secondary)";
+  return "var(--sn-text-tertiary)";
 }
 
-function ScoreBar({ label, value, accent }: { label: string; value: number; accent: string }) {
-  const color = statColor(value, accent);
+function ScoreBar({ label, value }: { label: string; value: number }) {
+  const color = statColor(value);
   return (
     <div className="flex items-center gap-1.5">
       <span className="font-mono text-[10px] text-[var(--sn-text-tertiary)] uppercase tracking-[0.06em]">
@@ -32,7 +34,7 @@ function ScoreBar({ label, value, accent }: { label: string; value: number; acce
   );
 }
 
-function NewsItem({ article, accent }: { article: Article; accent: string }) {
+function NewsItem({ article }: { article: Article }) {
   const title   = article.impact_headline || article.headline;
   const date    = (article.published_at || "").slice(0, 10);
   const summary = article.ai_summary
@@ -70,9 +72,9 @@ function NewsItem({ article, accent }: { article: Article; accent: string }) {
         </p>
       )}
       <div className="flex gap-[18px] flex-wrap">
-        <ScoreBar label="IMP" value={imp} accent={accent} />
-        <ScoreBar label="REL" value={rel} accent={accent} />
-        <ScoreBar label="BRK" value={brk} accent={accent} />
+        <ScoreBar label="IMP" value={imp} />
+        <ScoreBar label="REL" value={rel} />
+        <ScoreBar label="BRK" value={brk} />
       </div>
     </div>
   );
@@ -83,7 +85,6 @@ export default function CoveragePage() {
   const ticker = String(raw ?? "").toUpperCase();
 
   const [longName, setLongName] = useState("");
-  const [accent, setAccent]     = useState("#76b900");
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading]   = useState(true);
   const [page, setPage]         = useState(0);
@@ -106,7 +107,6 @@ export default function CoveragePage() {
       .then((r) => r.json())
       .then((h) => {
         setLongName(h.long_name ?? ticker);
-        setAccent(h.accent ?? "#76b900");
         document.documentElement.style.setProperty("--sn-accent", h.accent);
         document.documentElement.style.setProperty("--sn-accent-dim", h.accent_dim);
         document.documentElement.style.setProperty("--sn-accent-glow", h.accent_glow);
@@ -233,7 +233,7 @@ export default function CoveragePage() {
             </div>
           ) : (
             slice.map((article, i) => (
-              <NewsItem key={i} article={article} accent={accent} />
+              <NewsItem key={i} article={article} />
             ))
           )}
         </>

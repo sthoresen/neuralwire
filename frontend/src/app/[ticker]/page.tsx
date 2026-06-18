@@ -155,7 +155,7 @@ export default function ScreenerPage() {
                   "radial-gradient(ellipse, var(--sn-accent-glow) 0%, transparent 70%)",
               }}
             />
-            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-[var(--sn-text-tertiary)] mb-3">
+            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-[var(--sn-text-secondary)] mb-3">
               {header.eyebrow}
             </p>
             <div className="flex items-baseline gap-4 flex-wrap mb-2">

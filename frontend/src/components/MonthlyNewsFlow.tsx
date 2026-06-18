@@ -51,7 +51,7 @@ export default function MonthlyNewsFlow({ artefact }: Props) {
       {/* Left: preview (first 2 paras) */}
       <div>
         <div className="flex items-center gap-3 mb-5">
-          <span className="font-mono text-[10px] text-[var(--sn-text-tertiary)] uppercase tracking-[0.14em] whitespace-nowrap">
+          <span className="font-mono text-[10px] text-[var(--sn-text-secondary)] uppercase tracking-[0.14em] whitespace-nowrap">
             Monthly News Flow
           </span>
           <div className="flex-1 h-px bg-[var(--sn-border-subtle)]" />
@@ -73,7 +73,7 @@ export default function MonthlyNewsFlow({ artefact }: Props) {
       {/* Right: full content */}
       <div>
         <div className="flex items-center gap-3 mb-5">
-          <span className="font-mono text-[10px] text-[var(--sn-text-tertiary)] uppercase tracking-[0.14em] whitespace-nowrap">
+          <span className="font-mono text-[10px] text-[var(--sn-text-secondary)] uppercase tracking-[0.14em] whitespace-nowrap">
             What&apos;s Moving the Stock
           </span>
           <div className="flex-1 h-px bg-[var(--sn-border-subtle)]" />

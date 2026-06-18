@@ -25,6 +25,7 @@ export default function Sidebar() {
   }, []);
 
   const isCoverage = pathname.endsWith("/coverage");
+  const isAbout = pathname === "/about";
 
   function handleTickerChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const t = e.target.value;
@@ -81,8 +82,9 @@ export default function Sidebar() {
       <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--sn-text-tertiary)] px-[6px] pt-2 pb-1 block">
         Navigate
       </span>
-      {navLink(`/${base}`, "Screener", "📈", !isCoverage)}
+      {navLink(`/${base}`, "Screener", "📈", !isCoverage && !isAbout)}
       {navLink(`/${base}/coverage`, "Coverage", "📰", isCoverage)}
+      {navLink("/about", "About", "ℹ️", isAbout)}
 
       {/* Divider */}
       <hr
