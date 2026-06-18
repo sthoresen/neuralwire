@@ -1,34 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useParams } from "next/navigation";
 import { Moon, Sun } from "lucide-react";
-
-const PAGE_NAMES: Record<string, string> = {
-  "/":         "Screener",
-  "/coverage": "Coverage",
-};
 
 export default function TopNav() {
   const pathname = usePathname();
+  const { ticker: raw } = useParams<{ ticker?: string }>();
+  const ticker = raw ? String(raw).toUpperCase() : "";
+  const isCoverage = pathname.endsWith("/coverage");
   const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [ticker, setTicker] = useState<string>("");
 
   // Apply stored theme on mount (runs once, no remount on navigation)
   useEffect(() => {
     const stored = (localStorage.getItem("sn-theme") as "dark" | "light") ?? "dark";
     setTheme(stored);
     document.documentElement.setAttribute("data-theme", stored);
-  }, []);
-
-  // Track active ticker from localStorage + sidebar events
-  useEffect(() => {
-    setTicker(localStorage.getItem("sn-ticker") ?? "NVDA");
-    function onTickerChange(e: Event) {
-      setTicker((e as CustomEvent<string>).detail);
-    }
-    window.addEventListener("ticker-change", onTickerChange);
-    return () => window.removeEventListener("ticker-change", onTickerChange);
   }, []);
 
   function toggleTheme() {
@@ -38,7 +25,7 @@ export default function TopNav() {
     document.documentElement.setAttribute("data-theme", next);
   }
 
-  const pageName = PAGE_NAMES[pathname] ?? "";
+  const pageName = ticker ? (isCoverage ? "Coverage" : "Screener") : "";
 
   return (
     <nav
@@ -65,7 +52,7 @@ export default function TopNav() {
       )}
 
       {/* Ticker badge — shown on Screener only */}
-      {pathname === "/" && ticker && (
+      {!isCoverage && ticker && (
         <span
           className="font-mono text-[12px] font-semibold px-2 py-[3px] rounded-[4px] tracking-[0.05em]"
           style={{ color: "var(--sn-accent)", background: "var(--sn-accent-dim)" }}

@@ -1,17 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import SectionHeader from "@/components/SectionHeader";
 import { Article } from "@/components/NewsSection";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 const PER_PAGE = 10;
-
-function getStoredTicker(): string {
-  if (typeof window === "undefined") return "NVDA";
-  return localStorage.getItem("sn-ticker") ?? "NVDA";
-}
 
 function statColor(v: number, accent: string): string {
   if (v >= 70) return accent;
@@ -83,7 +79,9 @@ function NewsItem({ article, accent }: { article: Article; accent: string }) {
 }
 
 export default function CoveragePage() {
-  const [ticker, setTicker]     = useState("NVDA");
+  const { ticker: raw } = useParams<{ ticker: string }>();
+  const ticker = String(raw ?? "").toUpperCase();
+
   const [longName, setLongName] = useState("");
   const [accent, setAccent]     = useState("#76b900");
   const [articles, setArticles] = useState<Article[]>([]);
@@ -95,20 +93,16 @@ export default function CoveragePage() {
   const [minBrk, setMinBrk] = useState(0);
   const [minImp, setMinImp] = useState(0);
 
+  // Reset pagination when ticker changes
   useEffect(() => {
-    setTicker(getStoredTicker());
-    function onTickerChange(e: Event) {
-      setTicker((e as CustomEvent<string>).detail);
-      setPage(0);
-    }
-    window.addEventListener("ticker-change", onTickerChange);
-    return () => window.removeEventListener("ticker-change", onTickerChange);
-  }, []);
+    setPage(0);
+  }, [ticker]);
 
   // Fetch header for accent + long name
   useEffect(() => {
     if (!ticker) return;
-    fetch(`${API}/ticker/${ticker}/header`)
+    const ctrl = new AbortController();
+    fetch(`${API}/ticker/${ticker}/header`, { signal: ctrl.signal })
       .then((r) => r.json())
       .then((h) => {
         setLongName(h.long_name ?? ticker);
@@ -118,20 +112,24 @@ export default function CoveragePage() {
         document.documentElement.style.setProperty("--sn-accent-glow", h.accent_glow);
       })
       .catch(() => {});
+    return () => ctrl.abort();
   }, [ticker]);
 
   // Fetch articles when ticker or filters change
   useEffect(() => {
     if (!ticker) return;
+    const ctrl = new AbortController();
     setLoading(true);
     setPage(0);
     fetch(
-      `${API}/ticker/${ticker}/coverage?min_relevance=${minRel}&min_breaking=${minBrk}&min_importance=${minImp}`
+      `${API}/ticker/${ticker}/coverage?min_relevance=${minRel}&min_breaking=${minBrk}&min_importance=${minImp}`,
+      { signal: ctrl.signal }
     )
       .then((r) => r.json())
       .then((d) => setArticles(d.articles ?? []))
-      .catch(() => setArticles([]))
-      .finally(() => setLoading(false));
+      .catch((e) => { if (e.name !== "AbortError") setArticles([]); })
+      .finally(() => { if (!ctrl.signal.aborted) setLoading(false); });
+    return () => ctrl.abort();
   }, [ticker, minRel, minBrk, minImp]);
 
   const total   = articles.length;

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
@@ -9,9 +9,10 @@ const API = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { ticker: raw } = useParams<{ ticker?: string }>();
+  const ticker = raw ? String(raw).toUpperCase() : "";
 
   const [tickers, setTickers] = useState<string[]>(["NVDA"]);
-  const [selected, setSelected] = useState<string>("NVDA");
 
   // Load ticker list
   useEffect(() => {
@@ -23,23 +24,17 @@ export default function Sidebar() {
       .catch(() => {});
   }, []);
 
-  // Persist selected ticker in localStorage so pages can read it
-  useEffect(() => {
-    const stored = localStorage.getItem("sn-ticker");
-    if (stored && stored !== selected) setSelected(stored);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const isCoverage = pathname.endsWith("/coverage");
 
   function handleTickerChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const t = e.target.value;
-    setSelected(t);
-    localStorage.setItem("sn-ticker", t);
-    // Trigger a custom event so page components can react without a full navigation
-    window.dispatchEvent(new CustomEvent("ticker-change", { detail: t }));
+    // Remember the choice so the root path can redirect here on next visit
+    document.cookie = `sn-ticker=${t}; path=/; max-age=31536000; samesite=lax`;
+    // Navigate, preserving the current view (screener vs coverage)
+    router.push(`/${t}${isCoverage ? "/coverage" : ""}`);
   }
 
-  const navLink = (href: string, label: string, icon: string) => {
-    const active = pathname === href;
+  const navLink = (href: string, label: string, icon: string, active: boolean) => {
     return (
       <Link
         href={href}
@@ -55,6 +50,8 @@ export default function Sidebar() {
       </Link>
     );
   };
+
+  const base = ticker || "NVDA";
 
   return (
     <aside
@@ -84,8 +81,8 @@ export default function Sidebar() {
       <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--sn-text-tertiary)] px-[6px] pt-2 pb-1 block">
         Navigate
       </span>
-      {navLink("/", "Screener", "📈")}
-      {navLink("/coverage", "Coverage", "📰")}
+      {navLink(`/${base}`, "Screener", "📈", !isCoverage)}
+      {navLink(`/${base}/coverage`, "Coverage", "📰", isCoverage)}
 
       {/* Divider */}
       <hr
@@ -98,7 +95,7 @@ export default function Sidebar() {
         Ticker
       </span>
       <select
-        value={selected}
+        value={ticker || ""}
         onChange={handleTickerChange}
         className="mx-1 px-2 py-1.5 rounded-[var(--sn-radius-xs)] font-mono text-[12px]
                    tracking-[0.06em] outline-none cursor-pointer
