@@ -27,10 +27,14 @@ tclass.init()
 app = FastAPI(title="Pulse API", version="1.0.0")
 
 _frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+# Optional regex to also allow preview deployments (e.g. Vercel branch previews).
+# Off unless set — scope it to your own project, e.g. https://neuralwire-.*\.vercel\.app
+_preview_regex = os.environ.get("FRONTEND_PREVIEW_REGEX") or None
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[_frontend_url],
+    allow_origin_regex=_preview_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
