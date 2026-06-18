@@ -56,24 +56,32 @@ export default function ScreenerPage() {
     setIntraday([]);
     setHeader(null);
 
+    // Header drives the theme color — fetch it on its own so the accent updates
+    // immediately, without waiting for the heavier content fetches below.
+    const headerP = fetch(`${API}/ticker/${ticker}/header`, { signal: ctrl.signal }).then((r) => r.json());
+    headerP
+      .then((h) => {
+        setHeader(h);
+        document.documentElement.style.setProperty("--sn-accent", h.accent);
+        document.documentElement.style.setProperty("--sn-accent-dim", h.accent_dim);
+        document.documentElement.style.setProperty("--sn-accent-glow", h.accent_glow);
+      })
+      .catch(() => {}); // errors surfaced by Promise.all below
+
     Promise.all([
-      fetch(`${API}/ticker/${ticker}/header`, { signal: ctrl.signal }).then((r) => r.json()),
+      headerP,
       fetch(`${API}/ticker/${ticker}/prices`, { signal: ctrl.signal }).then((r) => r.json()),
       fetch(`${API}/ticker/${ticker}/monthly-news-flow`, { signal: ctrl.signal }).then((r) => r.json()),
       fetch(`${API}/ticker/${ticker}/focal-points`, { signal: ctrl.signal }).then((r) => r.json()),
       fetch(`${API}/ticker/${ticker}/articles`, { signal: ctrl.signal }).then((r) => r.json()),
       fetch(`${API}/ticker/${ticker}/events`, { signal: ctrl.signal }).then((r) => r.json()),
     ])
-      .then(([h, p, mnfData, fpData, arts, evts]) => {
-        setHeader(h);
+      .then(([, p, mnfData, fpData, arts, evts]) => {
         setPrices(p.prices ?? []);
         setMnf(mnfData);
         setFocalPoints(fpData);
         setArticles(arts.articles ?? []);
         setEvents(evts.events ?? []);
-        document.documentElement.style.setProperty("--sn-accent", h.accent);
-        document.documentElement.style.setProperty("--sn-accent-dim", h.accent_dim);
-        document.documentElement.style.setProperty("--sn-accent-glow", h.accent_glow);
       })
       .catch((e) => { if (e.name !== "AbortError") console.error(e); })
       .finally(() => { if (!ctrl.signal.aborted) setLoading(false); });
