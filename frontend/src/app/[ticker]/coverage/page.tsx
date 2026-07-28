@@ -99,6 +99,11 @@ export default function CoveragePage() {
     setPage(0);
   }, [ticker]);
 
+  // Reflect the active ticker in the browser tab title
+  useEffect(() => {
+    if (ticker) document.title = `${ticker} Coverage · NeuralWire`;
+  }, [ticker]);
+
   // Fetch header for accent + long name
   useEffect(() => {
     if (!ticker) return;
@@ -150,7 +155,7 @@ export default function CoveragePage() {
         <input
           type="range" min={0} max={100} value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="w-32 accent-[var(--sn-accent)]"
+          className="flex-1 max-w-[160px] accent-[var(--sn-accent)]"
         />
         <span className="font-mono text-[11px] text-[var(--sn-text-secondary)] w-6 text-right">
           {value}
@@ -166,7 +171,7 @@ export default function CoveragePage() {
         <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--sn-text-tertiary)] mb-2">
           News Analysis
         </p>
-        <h1 className="font-serif text-[32px] font-bold tracking-[-0.02em] text-[var(--sn-text)] mb-1">
+        <h1 className="font-serif text-[26px] sm:text-[32px] font-bold tracking-[-0.02em] text-[var(--sn-text)] mb-1">
           {ticker} Coverage
         </h1>
         <p className="text-[14px] text-[var(--sn-text-secondary)] font-light">

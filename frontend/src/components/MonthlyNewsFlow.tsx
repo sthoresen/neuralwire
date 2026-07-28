@@ -47,7 +47,7 @@ export default function MonthlyNewsFlow({ artefact }: Props) {
   );
 
   return (
-    <div className="grid grid-cols-2 gap-5" style={{ marginTop: 56 }}>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5" style={{ marginTop: 56 }}>
       {/* Left: preview (first 2 paras) */}
       <div>
         <div className="flex items-center gap-3 mb-5">
@@ -57,7 +57,7 @@ export default function MonthlyNewsFlow({ artefact }: Props) {
           <div className="flex-1 h-px bg-[var(--sn-border-subtle)]" />
         </div>
         <div
-          className="rounded-[var(--sn-radius)] p-7 border transition-colors"
+          className="rounded-[var(--sn-radius)] p-5 sm:p-7 border transition-colors"
           style={{
             background: "var(--sn-surface)",
             borderColor: "var(--sn-border-subtle)",
@@ -79,7 +79,7 @@ export default function MonthlyNewsFlow({ artefact }: Props) {
           <div className="flex-1 h-px bg-[var(--sn-border-subtle)]" />
         </div>
         <div
-          className="rounded-[var(--sn-radius)] p-7 border transition-colors"
+          className="rounded-[var(--sn-radius)] p-5 sm:p-7 border transition-colors"
           style={{
             background: "var(--sn-surface)",
             borderColor: "var(--sn-border-subtle)",

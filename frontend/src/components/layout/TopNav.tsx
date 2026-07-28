@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useParams } from "next/navigation";
-import { Moon, Sun } from "lucide-react";
+import { Menu, Moon, Sun } from "lucide-react";
+import { useNav } from "./NavProvider";
 
 export default function TopNav() {
+  const { setDrawerOpen } = useNav();
   const pathname = usePathname();
   const { ticker: raw } = useParams<{ ticker?: string }>();
   const ticker = raw ? String(raw).toUpperCase() : "";
@@ -30,16 +32,26 @@ export default function TopNav() {
 
   return (
     <nav
-      className="fixed top-0 left-0 right-0 z-[99999] h-[52px] px-8 flex items-center gap-4
+      className="fixed top-0 left-0 right-0 z-[99999] h-[52px] px-4 lg:px-8 flex items-center gap-3 sm:gap-4
                  backdrop-blur-xl border-b transition-[background,border-color] duration-300"
       style={{
         background:        theme === "dark" ? "rgba(10,10,11,0.85)" : "rgba(245,245,243,0.9)",
         borderBottomColor: theme === "dark" ? "#1e1e21" : "#e0e0dc",
       }}
     >
+      {/* Hamburger — opens the sidebar drawer on mobile */}
+      <button
+        onClick={() => setDrawerOpen(true)}
+        className="lg:hidden flex items-center justify-center -ml-1 text-[var(--sn-text-secondary)]
+                   hover:text-[var(--sn-text)] transition-colors cursor-pointer"
+        aria-label="Open navigation menu"
+      >
+        <Menu size={20} />
+      </button>
+
       {/* Logo */}
       <span className="font-serif text-[15px] font-bold tracking-tight text-[var(--sn-text)]">
-        Pulse
+        NeuralWire
       </span>
 
       {/* Alpha badge */}
@@ -51,11 +63,11 @@ export default function TopNav() {
       </span>
 
       {/* Divider */}
-      <div className="w-px h-5 bg-[var(--sn-border)]" />
+      <div className="hidden sm:block w-px h-5 bg-[var(--sn-border)]" />
 
       {/* Page name */}
       {pageName && (
-        <span className="text-[13px] font-medium text-[var(--sn-text-secondary)]">
+        <span className="hidden sm:block text-[13px] font-medium text-[var(--sn-text-secondary)]">
           {pageName}
         </span>
       )}

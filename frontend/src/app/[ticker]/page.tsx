@@ -47,6 +47,11 @@ export default function ScreenerPage() {
   const [events, setEvents] = useState<TickerEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Reflect the active ticker in the browser tab title
+  useEffect(() => {
+    if (ticker) document.title = `${ticker} · NeuralWire`;
+  }, [ticker]);
+
   // Fetch all data when ticker changes
   useEffect(() => {
     if (!ticker) return;
@@ -144,12 +149,11 @@ export default function ScreenerPage() {
           {/* ── Hero ─────────────────────────────────────────────────── */}
           <div className="relative mb-12">
             <div
-              className="absolute pointer-events-none -z-10"
+              className="absolute pointer-events-none -z-10 w-[300px] sm:w-[500px]"
               style={{
                 top: -100,
                 left: "40%",
                 transform: "translateX(-50%)",
-                width: 500,
                 height: 250,
                 background:
                   "radial-gradient(ellipse, var(--sn-accent-glow) 0%, transparent 70%)",
@@ -159,16 +163,16 @@ export default function ScreenerPage() {
               {header.eyebrow}
             </p>
             <div className="flex items-baseline gap-4 flex-wrap mb-2">
-              <h1 className="font-serif text-[48px] font-bold tracking-[-0.02em] leading-[1.1] text-[var(--sn-text)]">
+              <h1 className="font-serif text-[34px] sm:text-[42px] lg:text-[48px] font-bold tracking-[-0.02em] leading-[1.1] text-[var(--sn-text)]">
                 {header.ticker}
               </h1>
-              <span className="text-[20px] font-light text-[var(--sn-text-tertiary)]">
+              <span className="text-[15px] sm:text-[20px] font-light text-[var(--sn-text-tertiary)]">
                 {header.long_name}
               </span>
             </div>
             {latestPrice != null && (
               <div className="flex items-baseline gap-3.5 mt-5">
-                <span className="font-mono text-[32px] font-medium text-[var(--sn-text)]">
+                <span className="font-mono text-[26px] sm:text-[32px] font-medium text-[var(--sn-text)]">
                   ${latestPrice.toFixed(2)}
                 </span>
                 {priceChange != null && pricePct != null && (

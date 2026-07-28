@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { usePathname, useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useNav } from "./NavProvider";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
 export default function Sidebar() {
+  const { drawerOpen, setDrawerOpen } = useNav();
   const pathname = usePathname();
   const router = useRouter();
   const { ticker: raw } = useParams<{ ticker?: string }>();
@@ -24,6 +26,11 @@ export default function Sidebar() {
       .catch(() => {});
   }, []);
 
+  // Close the mobile drawer whenever the route changes (link click, ticker nav)
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [pathname, setDrawerOpen]);
+
   const isCoverage = pathname.endsWith("/coverage");
   const isAbout = pathname === "/about";
 
@@ -33,6 +40,7 @@ export default function Sidebar() {
     document.cookie = `sn-ticker=${t}; path=/; max-age=31536000; samesite=lax`;
     // Navigate, preserving the current view (screener vs coverage)
     router.push(`/${t}${isCoverage ? "/coverage" : ""}`);
+    setDrawerOpen(false);
   }
 
   const navLink = (href: string, label: string, icon: string, active: boolean) => {
@@ -55,16 +63,23 @@ export default function Sidebar() {
   const base = ticker || "NVDA";
 
   return (
+    <>
+    {/* Backdrop — mobile only, dims content while the drawer is open */}
+    <div
+      onClick={() => setDrawerOpen(false)}
+      className={`lg:hidden fixed inset-0 z-[9998] bg-black/50 transition-opacity duration-300
+                  ${drawerOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+      aria-hidden="true"
+    />
     <aside
-      className="fixed top-0 left-0 h-full z-[9999] flex flex-col border-r"
+      className={`fixed top-0 left-0 h-full z-[9999] flex flex-col border-r
+                  pt-[72px] pb-5 px-2.5 lg:pt-5
+                  transition-transform duration-300 lg:transition-none
+                  ${drawerOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
       style={{
         width: 272,
         background: "var(--sn-bg)",
         borderColor: "var(--sn-border-subtle)",
-        paddingTop: 20,
-        paddingBottom: 20,
-        paddingLeft: 10,
-        paddingRight: 10,
       }}
     >
       {/* Logo */}
@@ -75,7 +90,7 @@ export default function Sidebar() {
           borderColor: "var(--sn-border-subtle)",
         }}
       >
-        Pulse
+        NeuralWire
       </span>
 
       {/* Navigate section */}
@@ -115,5 +130,6 @@ export default function Sidebar() {
         ))}
       </select>
     </aside>
+    </>
   );
 }

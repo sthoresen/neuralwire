@@ -50,6 +50,7 @@ html, body {
   color: var(--sn-text);
   font-family: 'DM Sans', sans-serif;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 /* ── Scrollbar ──────────────────────────────────────────────────────────── */

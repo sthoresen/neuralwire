@@ -81,8 +81,12 @@ export default function PriceChart({ prices, intraday, accent }: Props) {
 
     const isDark = (document.documentElement.getAttribute("data-theme") ?? "dark") !== "light";
 
+    // Shorter chart on narrow (phone) screens
+    const chartHeight = containerRef.current.clientWidth < 480 ? 240 : 320;
+
     const chart = createChart(containerRef.current, {
-      height: 320,
+      height: chartHeight,
+      width: containerRef.current.clientWidth,
       layout: {
         background:  { color: "transparent" },
         textColor:   isDark ? "#71717a" : "#8c8c8c",
@@ -169,7 +173,19 @@ export default function PriceChart({ prices, intraday, accent }: Props) {
       tooltip.style.display = "flex";
     });
 
+    // Keep the chart width in sync with its container (orientation change, drawer, resize)
+    const ro = new ResizeObserver(() => {
+      const el = containerRef.current;
+      if (!el) return;
+      chart.applyOptions({
+        width:  el.clientWidth,
+        height: el.clientWidth < 480 ? 240 : 320,
+      });
+    });
+    ro.observe(containerRef.current);
+
     return () => {
+      ro.disconnect();
       chart.remove();
       chartRef.current  = null;
       seriesRef.current = null;
@@ -255,7 +271,7 @@ export default function PriceChart({ prices, intraday, accent }: Props) {
               key={label}
               disabled={disabled}
               onClick={() => applyRange(label)}
-              className="font-mono text-[11px] px-2 py-1 rounded-[var(--sn-radius-xs)] border
+              className="font-mono text-[11px] px-2.5 py-1.5 rounded-[var(--sn-radius-xs)] border
                          transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               style={{
                 background:   active ? accent : "var(--sn-surface)",

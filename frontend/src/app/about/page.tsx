@@ -3,7 +3,7 @@ import SectionHeader from "@/components/SectionHeader";
 import { Github, Mail } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "About · Pulse",
+  title: "About",
 };
 
 const STEPS: { n: string; title: string; body: string }[] = [
@@ -43,7 +43,7 @@ export default function AboutPage() {
           About
         </p>
         <div className="flex items-center gap-3 mb-4 flex-wrap">
-          <h1 className="font-serif text-[40px] font-bold tracking-[-0.02em] leading-[1.1] text-[var(--sn-text)]">
+          <h1 className="font-serif text-[30px] sm:text-[40px] font-bold tracking-[-0.02em] leading-[1.1] text-[var(--sn-text)]">
             NeuralWire
           </h1>
           <span
@@ -63,7 +63,7 @@ export default function AboutPage() {
 
       {/* How it works */}
       <SectionHeader label="How it works" mt="0" />
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {STEPS.map((s) => (
           <div
             key={s.n}
