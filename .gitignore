@@ -27,6 +27,9 @@ agentic_data/
 nvidia ai data/
 New folder/
 
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+
 # ── Scratch / temp files ──────────────────────────────────────────────────────
 python_backend/temp_*.txt
 

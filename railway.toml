@@ -1,27 +1,45 @@
-# railway.toml — NeuralWire service configuration
+# railway.toml — NeuralWire build configuration
 # Docs: docs.railway.com/reference/config-as-code
 #
-# This file configures the PRIMARY web service only.
-# Each cron job must be a separate Railway service pointing at this repo,
-# with the same env vars (DATABASE_URL, OPENROUTER_KEY, ALPHA_VANTAGE_API_KEY,
-# ALPACA_KEY, ALPACA_SECRET, DEFEATBETA_API_KEY …).
+# The only thing this file sets is the builder. Start commands, cron
+# schedules and env vars all live in each service's Railway dashboard
+# settings, not here — the map below is documentation of what is
+# configured there, so keep it in sync by hand.
 #
-# ── Cron services: dashboard settings ─────────────────────────────────────────
+# ── Services in the Railway project (all deploy from this repo) ───────────────
 #
-#  fetch-news          →  python run_fetch.py
-#                         0 */2 * * *        (every 2 h)
+#  web            →  uvicorn api:app --host 0.0.0.0 --port $PORT   (see Procfile)
+#                    Always on. Serves the FastAPI read API to the
+#                    Next.js frontend on Vercel.
 #
-#  analyze-articles    →  python run_analysis.py
-#                         */30 * * * *       (every 30 min)
+#  neuralwire     →  python scheduler.py
+#                    Always on. APScheduler process that owns every
+#                    periodic job and runs each one as a subprocess.
+#                    Schedules live in scheduler.py, NOT in Railway cron:
+#                      run_fetch.py             0 */2 * * *    every 2 h
+#                      run_earnings.py          0 6 * * *      06:00 UTC daily
+#                      run_events.py            0 */4 * * *    every 4 h
+#                      run_artefacts.py         0 5 * * *      05:00 UTC daily
+#                      run_sync_daily_prices.py 0 22 * * 1-5   after NYSE close
+#                      run_sync_intraday.py     15 21 * * 1-5  15 min after close
 #
-#  sync-prices         →  python python_backend/sync_prices.py
-#                         0 22 * * 1-5       (22:00 UTC Mon–Fri = ~6 PM ET, after NYSE close)
+#  analysis-loop  →  python run_analysis.py
+#                    Always on, and deliberately a SEPARATE service from
+#                    neuralwire: the analysis loop is the component that has
+#                    actually crashed, and isolating it keeps the scheduled
+#                    jobs running when it does. It paces itself internally
+#                    (small batch, sleeps only when the queue is drained) —
+#                    do not put it back on a Railway/APScheduler cron. As a
+#                    30-min cron it outlived its own schedule and every
+#                    re-fire was dropped with "maximum number of running
+#                    instances reached".
 #
-#  ingest-earnings     →  python run_earnings.py
-#                         0 6 * * *          (06:00 UTC daily — defeatbeta updates overnight)
+#  Postgres       →  Railway Postgres plugin + postgres-volume
+#                    Grow the volume in the volume's Settings tab; billing
+#                    is on data stored, not on provisioned size.
 #
-# ── Web service ───────────────────────────────────────────────────────────────
+# Every app service needs the same env vars: DATABASE_URL, OPENROUTER_KEY,
+# XAI_API_KEY, ALPHA_VANTAGE_API_KEY, ALPACA_KEY, ALPACA_SECRET.
 
 [build]
 builder = "nixpacks"
-

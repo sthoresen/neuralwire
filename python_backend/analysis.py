@@ -53,6 +53,18 @@ class RunStats:
     saved: dict = field(default_factory=dict)       # {ticker: count}
     models_used: dict = field(default_factory=dict)  # {model_name: count}
 
+    @property
+    def advanced(self) -> int:
+        """Articles this run cleared out of analysis_status='pending'.
+
+        no_content and llm_error are deliberately excluded: neither writes
+        analysis_status, so those articles are re-selected by the next
+        get_pending_articles() call. A batch of only those made no progress
+        and the caller must back off rather than immediately retry.
+        """
+        return (self.regex_skipped + self.llm_skipped + self.no_insight
+                + sum(self.saved.values()))
+
 
 def _build_monthly_context(ticker: str, lookback_days: int = 30) -> dict:
     """
@@ -564,13 +576,17 @@ def run_pending_pipeline(limit=20):
     """
     Fetches up to `limit` unanalyzed articles from the DB and runs them
     through the full scrape + analyze + save pipeline.
+
+    Returns the run's RunStats. Callers pacing a loop should branch on
+    `stats.batch_size` (0 = nothing pending) and `stats.advanced`
+    (0 = batch made no progress, so back off instead of retrying).
     """
     stats = RunStats()
     articles = database.get_pending_articles(limit=limit)
 
     if not articles:
         print("No pending articles found.")
-        return []
+        return stats
 
     stats.batch_size = len(articles)
     print(f"Found {len(articles)} pending articles. Starting pipeline...")
@@ -579,11 +595,11 @@ def run_pending_pipeline(limit=20):
     if not articles:
         print("All articles filtered out. Done.")
         _print_run_summary(stats)
-        return []
+        return stats
 
     run_analysis_pipeline(articles, stats=stats)
     _print_run_summary(stats)
-    return articles
+    return stats
 
 
 def run_analysis_pipeline(articles: list[dict], stats: RunStats = None):
