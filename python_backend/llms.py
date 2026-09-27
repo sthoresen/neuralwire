@@ -5,6 +5,7 @@ import os
 import time
 from typing import Any, Literal
 
+import openai
 from openai import OpenAI
 
 import utils
@@ -14,8 +15,35 @@ Tier = Literal["economy", "standard", "premium"]
 # (text, model_name) on success, (None, None) when every provider failed.
 LLMReply = tuple[str, str] | tuple[None, None]
 
+# How _try_provider reacts to a failed request. See classify_error().
+ErrorAction = Literal["retry", "skip", "disable"]
+
 # Tier escalation order (low → high cost/quality)
 _TIER_ORDER: list[Tier] = ["economy", "standard", "premium"]
+
+
+def classify_error(e: Exception) -> ErrorAction:
+    """
+    Decide what a failed request means, by HTTP status rather than message text.
+
+    retry:   temporary (429, 5xx, timeout, connection error): back off and try again
+    skip:    this request can't succeed on this provider (400, 422, ...): try the next one
+    disable: this provider can't serve any request (402 no credits, 401/403 bad key,
+             404 unknown or deprecated model, daily free quota): turn it off
+    """
+    if not isinstance(e, openai.APIStatusError):
+        return "retry"  # timeouts, connection errors, anything unexpected
+
+    # A 429 that won't clear until the daily quota resets, so retrying is pointless.
+    if "free-models-per-day" in str(e) or "insufficient_quota" in str(e):
+        return "disable"
+
+    status = e.status_code
+    if status in (401, 402, 403, 404):
+        return "disable"
+    if status in (408, 429) or status >= 500:
+        return "retry"
+    return "skip"
 
 
 def _stream_grok_verbose(chat) -> str:
@@ -200,7 +228,9 @@ class LLMProviderManager:
             print(f"  [{name}] skipped: no api key", flush=True)
             return None, None
 
-        client = OpenAI(base_url=provider["base_url"], api_key=provider["api_key"])
+        # max_retries=0: the SDK would otherwise retry 429/5xx itself before this loop
+        # sees the error. One retry layer, the one below, that is logged and tested.
+        client = OpenAI(base_url=provider["base_url"], api_key=provider["api_key"], max_retries=0)
         backoff = 2
 
         messages = []
@@ -235,24 +265,25 @@ class LLMProviderManager:
                     time.sleep(backoff)
                     backoff *= 2
                     continue
-                content = completion.choices[0].message.content
+                # Strip before the emptiness check: a reply of only whitespace is empty.
+                content = (completion.choices[0].message.content or "").strip()
                 if not content:
                     last_failure = "empty content (reasoning model hit token limit?)"
                     time.sleep(backoff)
                     backoff *= 2
                     continue
-                return content.strip(), name
+                return content, name
 
             except Exception as e:
-                error_msg = str(e)
-                if "free-models-per-day" in error_msg or "insufficient_quota" in error_msg:
-                    print(f"  [{name}] daily limit reached. Disabling.", flush=True)
+                action = classify_error(e)
+                if action == "disable":
+                    print(f"  [{name}] disabled: {str(e)[:120]}", flush=True)
                     provider["is_active"] = False
                     return None, None
-                if "429" in error_msg:
-                    last_failure = "rate-limited (429)"
-                else:
-                    last_failure = error_msg[:120]
+                if action == "skip":
+                    print(f"  [{name}] request rejected, trying next: {str(e)[:120]}", flush=True)
+                    return None, None
+                last_failure = str(e)[:120]
                 time.sleep(backoff)
                 backoff *= 2
                 continue

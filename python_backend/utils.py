@@ -137,26 +137,17 @@ def to_yfinance_ticker(ticker: str) -> str:
     return _YFINANCE_MAP.get(ticker, ticker)
 
 
-def csv_to_tickers(res):
-    if not isinstance(res, str):
-        print("The ticker finding llm failed to generate a string")
+def csv_to_tickers(res: str | None) -> list[str] | int:
+    """
+    Parse the ticker-identification LLM reply ("AAPL,NVDA" or "boring!").
+    Returns the tickers, [] for "boring!", or -1 if the reply is missing or blank.
+    """
+    if not isinstance(res, str) or not res.strip():
+        print("The ticker finding llm failed to generate a non-empty string")
         return -1
 
     if "boring!" in res:
         return []
 
-    res.strip()
-
-    if len(res) < 1:
-        print("The ticker finding llm failed to generate a non-empty string")
-        return -1
-
-    if res[-1] == ",":
-        res = res[:-1]
-
-    if len(res) > 0:
-        tickers = res.split(",")
-        return tickers
-    else:
-        print("The ticker finding llm failed to generate a valid string")
-        return -1
+    # Strip each piece and drop empties: tolerates "AAPL, NVDA", trailing commas and newlines.
+    return [t.strip() for t in res.split(",") if t.strip()]

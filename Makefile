@@ -33,7 +33,7 @@ db-status:  ## Print which database the code resolves to
 	@cd python_backend && python3 -c "import db_connection"
 
 api: db  ## Run the FastAPI backend
-	uvicorn api:app --reload --port 8000
+	python3 -m uvicorn api:app --reload --port 8000
 
 worker: db  ## Run the analysis loop
 	python3 run_analysis.py

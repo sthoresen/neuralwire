@@ -5,6 +5,8 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "python_backend"))
 
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 
 from fastapi import BackgroundTasks, FastAPI, Query
@@ -19,13 +21,21 @@ import utils
 from db_connection import get_conn  # noqa: E402 — must come after sys.path.insert
 
 # ── Init ───────────────────────────────────────────────────────────────────
-database.init_db()
-database.init_ticker_artefacts_table()
-database.migrate_add_earnings_tables()
-tc.init()
-tclass.init()
 
-app = FastAPI(title="Pulse API", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Create tables and seed lookups once at server startup, not at import,
+    so the app can be imported (e.g. by tests) without a database."""
+    database.init_db()
+    database.init_ticker_artefacts_table()
+    database.migrate_add_earnings_tables()
+    tc.init()
+    tclass.init()
+    yield
+
+
+app = FastAPI(title="NeuralWire API", version="1.0.0", lifespan=lifespan)
 
 _frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 # Optional regex to also allow preview deployments (e.g. Vercel branch previews).
