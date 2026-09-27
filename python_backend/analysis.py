@@ -479,13 +479,13 @@ def _is_regex_noise(headline: str) -> bool:
     return any(p.search(headline) for p in _NOISE_PATTERNS)
 
 
-def _is_llm_noise(headline: str, api_summary: str) -> bool:
+def _is_llm_noise(headline: str, api_summary: str, llm_manager: llms.LLMProviderManager) -> bool:
     """Returns True if the LLM judges the article as not worth analyzing. Fails open (returns False) on LLM error."""
     prompt = prompts.prefilter_prompt.format(
         headline=headline,
         summary=(api_summary or "")[:500],
     )
-    result, _ = llms.llm_manager.call(
+    result, _ = llm_manager.call(
         prompt, tier="economy", max_tier="economy", reasoning=False, max_tokens=5
     )
     if not result:
@@ -513,11 +513,14 @@ def _run_pre_filter(articles: list[dict], stats: RunStats = None) -> list[dict]:
         database.mark_articles_skipped(regex_skip, reason="regex")
         print(f"  [pre-filter] regex skipped {len(regex_skip)} articles")
 
+    # One manager per batch: a provider disabled mid-batch (quota hit) stays
+    # disabled for the rest of it, and the next batch starts fresh.
+    llm_manager = llms.LLMProviderManager()
     survivors, llm_skip_ids = [], []
     for article in keep:
         headline = article.get("headline") or ""
         api_summary = article.get("api_summary") or ""
-        if _is_llm_noise(headline, api_summary):
+        if _is_llm_noise(headline, api_summary, llm_manager):
             llm_skip_ids.append(article["id"])
         else:
             survivors.append(article)

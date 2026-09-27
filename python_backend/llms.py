@@ -9,9 +9,6 @@ from openai import OpenAI
 
 import utils
 
-OPENROUTER_KEY = utils.get_env_variable("OPENROUTER_KEY")
-XAI_API_KEY = utils.get_env_variable("XAI_API_KEY")
-
 Tier = Literal["economy", "standard", "premium"]
 
 # (text, model_name) on success, (None, None) when every provider failed.
@@ -75,6 +72,11 @@ def _stream_grok_verbose(chat) -> str:
 
 class LLMProviderManager:
     def __init__(self) -> None:
+        # Keys are read here, not at import, so importing this module has no side effects.
+        # Both required: get_env_variable raises if either is unset.
+        self.openrouter_key = utils.get_env_variable("OPENROUTER_KEY")
+        self.xai_key = utils.get_env_variable("XAI_API_KEY")
+
         self.providers: list[dict[str, Any]] = [
             # ── Economy ────────────────────────────────────────────────────────
             # Cheap, fast. For high-volume or low-stakes tasks (article triage,
@@ -82,7 +84,7 @@ class LLMProviderManager:
             {
                 "name": "Tencent: Hy3 preview",
                 "base_url": "https://openrouter.ai/api/v1",
-                "api_key": OPENROUTER_KEY,
+                "api_key": self.openrouter_key,
                 "model": "tencent/hy3-preview",
                 "tier": "economy",
                 "supports_reasoning": True,
@@ -92,7 +94,7 @@ class LLMProviderManager:
             {
                 "name": "Gemma 4 31B IT",
                 "base_url": "https://openrouter.ai/api/v1",
-                "api_key": OPENROUTER_KEY,
+                "api_key": self.openrouter_key,
                 "model": "google/gemma-4-31b-it",
                 "tier": "economy",
                 "supports_reasoning": True,
@@ -102,7 +104,7 @@ class LLMProviderManager:
             {
                 "name": "OpenRouter (GPT-OSS 120B)",
                 "base_url": "https://openrouter.ai/api/v1",
-                "api_key": OPENROUTER_KEY,
+                "api_key": self.openrouter_key,
                 "model": "openai/gpt-oss-120b:free",
                 "tier": "economy",
                 "supports_reasoning": False,
@@ -112,7 +114,7 @@ class LLMProviderManager:
             {
                 "name": "OpenRouter (GPT-OSS 120B)",
                 "base_url": "https://openrouter.ai/api/v1",
-                "api_key": OPENROUTER_KEY,
+                "api_key": self.openrouter_key,
                 "model": "openai/gpt-oss-120b",
                 "tier": "economy",
                 "supports_reasoning": False,
@@ -124,7 +126,7 @@ class LLMProviderManager:
             {
                 "name": "Tencent: Hy3 preview",
                 "base_url": "https://openrouter.ai/api/v1",
-                "api_key": OPENROUTER_KEY,
+                "api_key": self.openrouter_key,
                 "model": "tencent/hy3-preview",
                 "tier": "standard",
                 "supports_reasoning": True,
@@ -134,7 +136,7 @@ class LLMProviderManager:
             {
                 "name": "DeepSeek V4 Flash",
                 "base_url": "https://openrouter.ai/api/v1",
-                "api_key": OPENROUTER_KEY,
+                "api_key": self.openrouter_key,
                 "model": "deepseek/deepseek-v4-flash",
                 "tier": "standard",
                 "supports_reasoning": False,
@@ -146,7 +148,7 @@ class LLMProviderManager:
             {
                 "name": "OpenRouter (Claude Haiku 4.5)",
                 "base_url": "https://openrouter.ai/api/v1",
-                "api_key": OPENROUTER_KEY,
+                "api_key": self.openrouter_key,
                 "model": "anthropic/claude-haiku-4.5",
                 "tier": "premium",
                 "supports_reasoning": True,
@@ -156,7 +158,7 @@ class LLMProviderManager:
             {
                 "name": "OpenRouter (Qwen 3.6 Plus)",
                 "base_url": "https://openrouter.ai/api/v1",
-                "api_key": OPENROUTER_KEY,
+                "api_key": self.openrouter_key,
                 "model": "qwen/qwen3.6-plus",
                 "tier": "premium",
                 "supports_reasoning": True,
@@ -169,9 +171,8 @@ class LLMProviderManager:
         # It requires the xAI SDK and is never eligible for call() routing.
         self.xai_config = {
             "name": "xAI Direct (Grok 4.3)",
-            "api_key": XAI_API_KEY,
+            "api_key": self.xai_key,
             "model": "grok-4.3",
-            "active": bool(XAI_API_KEY),
         }
 
     # ── Internal ───────────────────────────────────────────────────────────────
@@ -322,7 +323,7 @@ class LLMProviderManager:
             provider = {
                 "name": f"OpenRouter ({model_id})",
                 "base_url": "https://openrouter.ai/api/v1",
-                "api_key": OPENROUTER_KEY,
+                "api_key": self.openrouter_key,
                 "model": model_id,
                 "is_active": True,
                 "supports_reasoning": True,  # pass through if caller requests it
@@ -355,9 +356,6 @@ class LLMProviderManager:
         Calls Grok 4.3 with x_search enabled using the xAI SDK.
         Supports advanced X search filtering, timing constraints, and multimodal understanding.
         """
-        if not self.xai_config.get("active"):
-            raise RuntimeError("xAI Direct provider not configured. Add XAI_API_KEY to .env.")
-
         try:
             from xai_sdk import Client
             from xai_sdk.chat import user as xai_user
@@ -408,7 +406,3 @@ class LLMProviderManager:
             raise RuntimeError("xAI SDK returned empty content.")
 
         return content.strip(), self.xai_config["name"]
-
-
-# Module-level singleton for callers that import it directly
-llm_manager = LLMProviderManager()
