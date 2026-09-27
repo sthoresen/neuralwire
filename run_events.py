@@ -1,4 +1,5 @@
 """Runner: scan analyzed articles for ticker events. Intended for Railway cron."""
+
 import os
 import sys
 

@@ -1,4 +1,5 @@
 """Runner: ingest latest earnings transcripts for all active tickers. Intended for Railway cron."""
+
 import os
 import sys
 

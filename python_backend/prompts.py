@@ -1,4 +1,3 @@
-
 generate_header_description_prompt = """
 You are a financial data assistant writing copy for a professional stock terminal.
 
@@ -23,7 +22,7 @@ COMPANY HISTORY:
 """
 
 
-ticker_identify_prompt = '''
+ticker_identify_prompt = """
 SYSTEM ROLE:
 You are a cynical, strict Wall Street news editor. You are part of a larger program and must follow instructions exactly.
 
@@ -59,7 +58,7 @@ Source: {src} from {url}
 ---
 {content}
 ---
-'''
+"""
 
 
 prefilter_prompt = """You are screening financial news articles to decide if one is worth reading in full.
@@ -315,7 +314,7 @@ No preamble, no closing summary, no markdown beyond the bold titles.
 """
 
 
-analyze_article_impact_prompt_single_ticker_v1= """
+analyze_article_impact_prompt_single_ticker_v1 = """
 SYSTEM ROLE:
 You are a cynical, strict Wall Street news editor. Your job is to extract *only* significant stock news. You have a zero-tolerance policy for noise.
 

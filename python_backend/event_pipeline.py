@@ -32,6 +32,7 @@ import utils
 
 # ── Formatting helpers ────────────────────────────────────────────────────────
 
+
 def _format_existing_short(events):
     """Condensed list for the cheap scan prompt (date + title per line)."""
     if not events:
@@ -55,18 +56,19 @@ def _format_existing_full(events):
 
 # ── Pass 1: cheap scan ────────────────────────────────────────────────────────
 
+
 def _scan_one(ar, existing_summary, llm_manager):
     """
     Asks the cheap model whether a single analysis_run contains a new event.
     Returns a candidate dict or None.
     """
     prompt = prompts.event_scan_prompt.format(
-        ticker=ar['ticker'],
+        ticker=ar["ticker"],
         existing_events_summary=existing_summary,
-        published_at=ar.get('published_at', 'unknown'),
-        headline=ar.get('headline', ''),
-        impact_headline=ar.get('impact_headline', ''),
-        ai_summary=ar.get('ai_summary', ''),
+        published_at=ar.get("published_at", "unknown"),
+        headline=ar.get("headline", ""),
+        impact_headline=ar.get("impact_headline", ""),
+        ai_summary=ar.get("ai_summary", ""),
     )
 
     raw, model_used = llm_manager.call(prompt, tier="economy", reasoning=False, max_tokens=500)
@@ -78,17 +80,17 @@ def _scan_one(ar, existing_summary, llm_manager):
     if not isinstance(data, dict):
         return None
 
-    if not data.get('is_event'):
+    if not data.get("is_event"):
         return None
 
     return {
-        'title':            data.get('title', '').strip(),
-        'event_date':       data.get('event_date'),
-        'event_date_label': data.get('event_date_label'),
-        'description':      data.get('description', '').strip(),
-        'source_article_ids': [ar['article_id']],
-        '_analysis_id':     ar['id'],
-        '_model':           model_used,
+        "title": data.get("title", "").strip(),
+        "event_date": data.get("event_date"),
+        "event_date_label": data.get("event_date_label"),
+        "description": data.get("description", "").strip(),
+        "source_article_ids": [ar["article_id"]],
+        "_analysis_id": ar["id"],
+        "_model": model_used,
     }
 
 
@@ -105,9 +107,9 @@ def run_scan_pass(ticker, analyses, existing_events, llm_manager):
     print(f"\n[Pass 1 — scan] {total} analyses to check")
 
     for i, ar in enumerate(analyses):
-        print(f"  [{i+1}/{total}] article_id={ar['article_id']} ...", end=" ", flush=True)
+        print(f"  [{i + 1}/{total}] article_id={ar['article_id']} ...", end=" ", flush=True)
         candidate = _scan_one(ar, existing_summary, llm_manager)
-        checked_ids.append(ar['id'])
+        checked_ids.append(ar["id"])
 
         if candidate:
             print(f"CANDIDATE: {candidate['title'][:60]}")
@@ -120,6 +122,7 @@ def run_scan_pass(ticker, analyses, existing_events, llm_manager):
 
 
 # ── Pass 2: expensive validation ─────────────────────────────────────────────
+
 
 def run_validate_pass(ticker, candidates, existing_events, llm_manager):
     """
@@ -151,13 +154,14 @@ def run_validate_pass(ticker, candidates, existing_events, llm_manager):
         return []
 
     for ev in approved:
-        ev['_model'] = model_used
+        ev["_model"] = model_used
 
     print(f"[Pass 2 done] {len(approved)} events approved")
     return approved
 
 
 # ── Main pipeline ─────────────────────────────────────────────────────────────
+
 
 def run_event_pipeline(ticker, batch_size=50, commit=True):
     """
@@ -202,13 +206,13 @@ def run_event_pipeline(ticker, batch_size=50, commit=True):
         for ev in approved:
             database.insert_ticker_event(
                 ticker=ticker,
-                title=ev['title'],
-                description=ev['description'],
-                event_date=ev.get('event_date'),
-                event_date_label=ev.get('event_date_label'),
+                title=ev["title"],
+                description=ev["description"],
+                event_date=ev.get("event_date"),
+                event_date_label=ev.get("event_date_label"),
                 sources=[],
-                article_ids=ev.get('source_article_ids', []),
-                model_name=ev.get('_model'),
+                article_ids=ev.get("source_article_ids", []),
+                model_name=ev.get("_model"),
             )
         print(f"\nInserted {len(approved)} new events for {ticker}.")
     else:
@@ -224,8 +228,8 @@ def run_event_pipeline(ticker, batch_size=50, commit=True):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--ticker", default="NVDA")
-    parser.add_argument("--batch",  type=int, default=50, help="Max analyses to scan per run")
-    parser.add_argument("--commit", action="store_true",  help="Write to DB (default is dry run)")
+    parser.add_argument("--batch", type=int, default=50, help="Max analyses to scan per run")
+    parser.add_argument("--commit", action="store_true", help="Write to DB (default is dry run)")
     args = parser.parse_args()
 
     run_event_pipeline(ticker=args.ticker, batch_size=args.batch, commit=args.commit)

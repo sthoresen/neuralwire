@@ -5,6 +5,7 @@ Runs as a permanent Railway service alongside the web service.
 Each job is launched as a subprocess so jobs are fully isolated from
 each other and from this process.
 """
+
 import os
 import subprocess
 import sys
@@ -31,17 +32,22 @@ def run_script(script_path: str):
 def job_fetch():
     run_script(os.path.join(BASE_DIR, "run_fetch.py"))
 
+
 def job_earnings():
     run_script(os.path.join(BASE_DIR, "run_earnings.py"))
+
 
 def job_events():
     run_script(os.path.join(BASE_DIR, "run_events.py"))
 
+
 def job_artefacts():
     run_script(os.path.join(BASE_DIR, "run_artefacts.py"))
 
+
 def job_sync_prices():
     run_script(os.path.join(BASE_DIR, "run_sync_daily_prices.py"))
+
 
 def job_sync_intraday():
     run_script(os.path.join(BASE_DIR, "run_sync_intraday.py"))
@@ -66,7 +72,9 @@ if __name__ == "__main__":
     scheduler.add_job(job_sync_prices, CronTrigger.from_crontab("0 22 * * 1-5"), id="sync_prices")
 
     # Sync intraday 1-min bars — weekdays at 21:15 UTC (15 min after NYSE close)
-    scheduler.add_job(job_sync_intraday, CronTrigger.from_crontab("15 21 * * 1-5"), id="sync_intraday")
+    scheduler.add_job(
+        job_sync_intraday, CronTrigger.from_crontab("15 21 * * 1-5"), id="sync_intraday"
+    )
 
     print("[scheduler] Started. Jobs scheduled:", flush=True)
     for job in scheduler.get_jobs():

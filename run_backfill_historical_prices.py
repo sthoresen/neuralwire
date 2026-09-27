@@ -8,6 +8,7 @@ Usage:
     python run_backfill_historical_prices.py
     python run_backfill_historical_prices.py --tickers AAPL TSLA
 """
+
 import argparse
 import os
 import sys
@@ -23,7 +24,9 @@ SLEEP_BETWEEN = 1.0
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Backfill historical prices for all active tickers")
+    parser = argparse.ArgumentParser(
+        description="Backfill historical prices for all active tickers"
+    )
     parser.add_argument("--tickers", nargs="+", default=None)
     args = parser.parse_args()
 
@@ -33,8 +36,9 @@ if __name__ == "__main__":
     market_data.init_db()
 
     from datetime import date, timedelta
+
     start = str(date.today() - timedelta(days=365 * 5))
-    end   = str(date.today())
+    end = str(date.today())
 
     for ticker in tickers:
         try:

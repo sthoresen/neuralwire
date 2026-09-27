@@ -1,4 +1,5 @@
 """Runner: refresh stale ticker artefacts (monthly_news_flow, focal_points). Intended for Railway cron."""
+
 import os
 import sys
 

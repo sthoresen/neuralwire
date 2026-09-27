@@ -22,12 +22,13 @@ import requests
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import database
 
-HEADERS = {'User-Agent': 'StockNewsApp research@stocknews.local'}
-BASE    = 'https://data.sec.gov'
-DEFAULT_TICKER = 'NVDA'
+HEADERS = {"User-Agent": "StockNewsApp research@stocknews.local"}
+BASE = "https://data.sec.gov"
+DEFAULT_TICKER = "NVDA"
 
 
 # ── EDGAR helpers ──────────────────────────────────────────────────────────────
+
 
 def _get(url: str):
     r = requests.get(url, headers=HEADERS)
@@ -36,26 +37,28 @@ def _get(url: str):
 
 
 def _ticker_to_cik(ticker: str) -> str:
-    tickers_map = _get('https://www.sec.gov/files/company_tickers.json')
+    tickers_map = _get("https://www.sec.gov/files/company_tickers.json")
     t = ticker.upper()
     for entry in tickers_map.values():
-        if entry['ticker'] == t:
-            return str(entry['cik_str']).zfill(10)
-    raise ValueError(f'Ticker {t} not found in EDGAR')
+        if entry["ticker"] == t:
+            return str(entry["cik_str"]).zfill(10)
+    raise ValueError(f"Ticker {t} not found in EDGAR")
 
 
 def _get_earnings_8ks(cik: str) -> pd.DataFrame:
     """Returns a DataFrame of 8-K Item 2.02 filings (earnings announcements)."""
-    sub = _get(f'{BASE}/submissions/CIK{cik}.json')
-    recent = sub['filings']['recent']
-    df = pd.DataFrame({
-        'form':      recent['form'],
-        'filed':     recent['filingDate'],
-        'accession': recent['accessionNumber'],
-        'items':     recent['items'],
-    })
-    eightk = df[df['form'] == '8-K']
-    return eightk[eightk['items'].str.contains('2.02', na=False)].reset_index(drop=True)
+    sub = _get(f"{BASE}/submissions/CIK{cik}.json")
+    recent = sub["filings"]["recent"]
+    df = pd.DataFrame(
+        {
+            "form": recent["form"],
+            "filed": recent["filingDate"],
+            "accession": recent["accessionNumber"],
+            "items": recent["items"],
+        }
+    )
+    eightk = df[df["form"] == "8-K"]
+    return eightk[eightk["items"].str.contains("2.02", na=False)].reset_index(drop=True)
 
 
 def _get_xbrl_periods(cik: str) -> dict:
@@ -66,81 +69,88 @@ def _get_xbrl_periods(cik: str) -> dict:
     - 10-K: uses the annual record.
     YTD multi-quarter 10-Q records (no frame) are skipped.
     """
-    facts = _get(f'{BASE}/api/xbrl/companyfacts/CIK{cik}.json')
-    gaap  = facts['facts'].get('us-gaap', {})
-    if 'EarningsPerShareDiluted' not in gaap:
+    facts = _get(f"{BASE}/api/xbrl/companyfacts/CIK{cik}.json")
+    gaap = facts["facts"].get("us-gaap", {})
+    if "EarningsPerShareDiluted" not in gaap:
         return {}
-    records = gaap['EarningsPerShareDiluted']['units']['USD/shares']
+    records = gaap["EarningsPerShareDiluted"]["units"]["USD/shares"]
     result = {}
     for rec in records:
-        form  = rec.get('form', '')
-        filed = rec.get('filed', '')
+        form = rec.get("form", "")
+        filed = rec.get("filed", "")
         if not filed:
             continue
-        if form == '10-Q' and not rec.get('frame'):
+        if form == "10-Q" and not rec.get("frame"):
             continue  # skip YTD accumulations
         if filed not in result:
-            result[filed] = (rec['start'], rec['end'])
+            result[filed] = (rec["start"], rec["end"])
     return result
 
 
 def _get_exhibit_99_url(cik: str, accession: str) -> str | None:
-    cik_int    = int(cik)
-    acc_nodash = accession.replace('-', '')
-    index_url  = (f'https://www.sec.gov/Archives/edgar/data/'
-                  f'{cik_int}/{acc_nodash}/{accession}-index.htm')
+    cik_int = int(cik)
+    acc_nodash = accession.replace("-", "")
+    index_url = (
+        f"https://www.sec.gov/Archives/edgar/data/{cik_int}/{acc_nodash}/{accession}-index.htm"
+    )
     r = requests.get(index_url, headers=HEADERS)
     if r.status_code != 200:
         return None
-    rows = re.findall(r'<tr[^>]*>(.*?)</tr>', r.text, re.DOTALL | re.IGNORECASE)
+    rows = re.findall(r"<tr[^>]*>(.*?)</tr>", r.text, re.DOTALL | re.IGNORECASE)
     for row in rows:
-        cells = re.findall(r'<td[^>]*>(.*?)</td>', row, re.DOTALL | re.IGNORECASE)
+        cells = re.findall(r"<td[^>]*>(.*?)</td>", row, re.DOTALL | re.IGNORECASE)
         if len(cells) < 4:
             continue
-        type_cell = re.sub(r'<[^>]+>', '', cells[3]).strip()
-        if re.match(r'EX-99', type_cell, re.IGNORECASE):
-            href_match = re.search(
-                r'href="(/Archives/edgar/data/[^"]+)"', cells[2], re.IGNORECASE
-            )
+        type_cell = re.sub(r"<[^>]+>", "", cells[3]).strip()
+        if re.match(r"EX-99", type_cell, re.IGNORECASE):
+            href_match = re.search(r'href="(/Archives/edgar/data/[^"]+)"', cells[2], re.IGNORECASE)
             if href_match:
-                return 'https://www.sec.gov' + href_match.group(1)
+                return "https://www.sec.gov" + href_match.group(1)
     return None
 
 
 def _fetch_text(url: str) -> str:
     import html as html_lib
+
     r = requests.get(url, headers=HEADERS)
     r.raise_for_status()
     html = r.text
     # Replace block-level tags (including all their attributes) with a newline
-    html = re.sub(r'<(br|p|div|tr|li|h[1-6])[^>]*>', '\n', html, flags=re.IGNORECASE)
+    html = re.sub(r"<(br|p|div|tr|li|h[1-6])[^>]*>", "\n", html, flags=re.IGNORECASE)
     # Strip all remaining tags
-    text = re.sub(r'<[^>]+>', '', html)
+    text = re.sub(r"<[^>]+>", "", html)
     # Decode HTML entities (&#8226; → •, &amp; → &, etc.)
     text = html_lib.unescape(text)
-    text = re.sub(r'[ \t]+', ' ', text)
-    text = re.sub(r'\n{3,}', '\n\n', text)
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
 
 
 # ── Core fetch + save ──────────────────────────────────────────────────────────
 
+
 def _already_has_press_release(earnings_id: int) -> bool:
-    docs = database.get_earnings_documents(earnings_id, doc_type='press_release')
+    docs = database.get_earnings_documents(earnings_id, doc_type="press_release")
     return len(docs) > 0
 
 
-def fetch_and_save(ticker: str, earnings_row: dict,
-                   eightk_by_date: dict, xbrl_periods: dict,
-                   cik: str, commit: bool, force: bool = False) -> bool:
+def fetch_and_save(
+    ticker: str,
+    earnings_row: dict,
+    eightk_by_date: dict,
+    xbrl_periods: dict,
+    cik: str,
+    commit: bool,
+    force: bool = False,
+) -> bool:
     """
     Processes one earnings row: finds the matching 8-K, fetches Exhibit 99.1,
     saves to earnings_documents, and backfills period_start / period_end.
     Returns True if a press release was saved (or would be in dry-run).
     """
-    earnings_id  = earnings_row['id']
-    report_date  = earnings_row['report_date']
-    period_label = earnings_row.get('period_label', '')
+    earnings_id = earnings_row["id"]
+    report_date = earnings_row["report_date"]
+    period_label = earnings_row.get("period_label", "")
 
     print(f"  {period_label} (report_date={report_date}) ...", end=" ", flush=True)
 
@@ -148,7 +158,7 @@ def fetch_and_save(ticker: str, earnings_row: dict,
         if not force:
             print("already in DB, skip")
             return False
-        database.delete_earnings_documents(earnings_id, 'press_release')
+        database.delete_earnings_documents(earnings_id, "press_release")
         print("(replacing) ", end="")
 
     row_8k = eightk_by_date.get(report_date)
@@ -156,7 +166,7 @@ def fetch_and_save(ticker: str, earnings_row: dict,
         print("no matching 8-K found")
         return False
 
-    accession = row_8k['accession']
+    accession = row_8k["accession"]
     period_start, period_end = xbrl_periods.get(report_date, (None, None))
 
     exhibit_url = _get_exhibit_99_url(cik, accession)
@@ -188,7 +198,7 @@ def fetch_and_save(ticker: str, earnings_row: dict,
 
     doc_id = database.save_earnings_document(
         earnings_id=earnings_id,
-        doc_type='press_release',
+        doc_type="press_release",
         content=text,
         quality_score=85,
         is_preferred=True,
@@ -206,6 +216,7 @@ def fetch_and_save(ticker: str, earnings_row: dict,
 
 # ── Main pipeline ──────────────────────────────────────────────────────────────
 
+
 def run(ticker: str, commit: bool, force: bool = False):
     print(f"\nTicker : {ticker}")
     print(f"Mode   : {'COMMIT' if commit else 'DRY RUN'}")
@@ -217,7 +228,7 @@ def run(ticker: str, commit: bool, force: bool = False):
     print("Fetching EDGAR 8-K filings ...", end=" ", flush=True)
     eightks = _get_earnings_8ks(cik)
     print(f"{len(eightks)} earnings 8-Ks found")
-    eightk_by_date = {row['filed']: row for _, row in eightks.iterrows()}
+    eightk_by_date = {row["filed"]: row for _, row in eightks.iterrows()}
 
     print("Fetching XBRL period dates ...", end=" ", flush=True)
     xbrl_periods = _get_xbrl_periods(cik)
@@ -249,14 +260,11 @@ def run(ticker: str, commit: bool, force: bool = False):
 # ── CLI ────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Ingest earnings press releases from SEC EDGAR"
+    parser = argparse.ArgumentParser(description="Ingest earnings press releases from SEC EDGAR")
+    parser.add_argument("--ticker", default=DEFAULT_TICKER, help="Ticker symbol (default: NVDA)")
+    parser.add_argument("--commit", action="store_true", help="Write to DB (default is dry run)")
+    parser.add_argument(
+        "--force", action="store_true", help="Re-fetch and overwrite existing press releases"
     )
-    parser.add_argument("--ticker", default=DEFAULT_TICKER,
-                        help="Ticker symbol (default: NVDA)")
-    parser.add_argument("--commit", action="store_true",
-                        help="Write to DB (default is dry run)")
-    parser.add_argument("--force", action="store_true",
-                        help="Re-fetch and overwrite existing press releases")
     args = parser.parse_args()
     run(ticker=args.ticker, commit=args.commit, force=args.force)

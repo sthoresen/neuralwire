@@ -24,14 +24,17 @@ from alpaca_trade_api.stream import Stream
 
 import utils
 
-ALPACA_KEY    = utils.get_env_variable("ALPACA_KEY")
+ALPACA_KEY = utils.get_env_variable("ALPACA_KEY")
 ALPACA_SECRET = utils.get_env_variable("ALPACA_SECRET")
 
 
 def make_trade_handler(ticker: str):
     async def handler(t):
         ts = datetime.fromtimestamp(t.timestamp / 1e9).strftime("%H:%M:%S.%f")[:-3]
-        print(f"[TRADE] {ticker}  {ts}  price={t.price:<10.2f}  size={t.size:<8}  exchange={t.exchange}")
+        print(
+            f"[TRADE] {ticker}  {ts}  price={t.price:<10.2f}  size={t.size:<8}  exchange={t.exchange}"
+        )
+
     return handler
 
 
@@ -42,20 +45,26 @@ def make_bar_handler(ticker: str):
             f"O={b.open:.2f}  H={b.high:.2f}  L={b.low:.2f}  C={b.close:.2f}  "
             f"V={b.volume}"
         )
+
     return handler
 
 
 def make_quote_handler(ticker: str):
     async def handler(q):
         ts = datetime.fromtimestamp(q.timestamp / 1e9).strftime("%H:%M:%S.%f")[:-3]
-        print(f"[QUOTE] {ticker}  {ts}  bid={q.bid_price:<8.2f}x{q.bid_size:<6}  ask={q.ask_price:<8.2f}x{q.ask_size}")
+        print(
+            f"[QUOTE] {ticker}  {ts}  bid={q.bid_price:<8.2f}x{q.bid_size:<6}  ask={q.ask_price:<8.2f}x{q.ask_size}"
+        )
+
     return handler
 
 
 def main():
     parser = argparse.ArgumentParser(description="Alpaca real-time WebSocket stream")
     parser.add_argument("--ticker", default="NVDA")
-    parser.add_argument("--bars",   action="store_true", help="Subscribe to minute bars instead of trades")
+    parser.add_argument(
+        "--bars", action="store_true", help="Subscribe to minute bars instead of trades"
+    )
     parser.add_argument("--quotes", action="store_true", help="Also subscribe to quotes (bid/ask)")
     args = parser.parse_args()
 

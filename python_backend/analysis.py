@@ -1,4 +1,4 @@
-#analysis.py
+# analysis.py
 
 import re
 import time
@@ -13,22 +13,30 @@ import utils
 from db_connection import get_conn
 
 _NOISE_PATTERNS = [
-    re.compile(r'\bstock[s]?\s+(up|down|rose|fell|drops?|gains?|surges?|tumbles?|climbs?|slides?|plunges?|rallies?)\s+\d', re.I),
-    re.compile(r'\bshares?\s+(up|down|rose|fell|drops?|gains?|surges?|tumbles?|climbs?|slides?|plunges?|rallies?)\s+\d', re.I),
-    re.compile(r'\btop\s+\d+\s+(stocks?|picks?|names?|companies)', re.I),
-    re.compile(r'\b\d+\s+(stocks?|shares?|names?)\s+to\s+(watch|buy|avoid|consider|own)', re.I),
-    re.compile(r'\bstocks?\s+to\s+(watch|buy|avoid|consider|own)', re.I),
-    re.compile(r'\bbest\s+\d+\s+stocks?', re.I),
-    re.compile(r'\bwhy\s+.{0,50}(could|might|may)\s+(rise|fall|rally|drop|surge|tumble)', re.I),
-    re.compile(r'\binsider\s+(buys?|sells?|purchased|sold)\s+[\d,]+\s+shares?', re.I),
-    re.compile(r'\b(etf|index)\s+(adds?|removes?|rebalances?|reconstitut)', re.I),
-    re.compile(r'\bweekly\s+(recap|roundup|summary|wrap)', re.I),
-    re.compile(r'\b(morning|afternoon|evening)\s+(brief|briefing|wrap|roundup)', re.I),
+    re.compile(
+        r"\bstock[s]?\s+(up|down|rose|fell|drops?|gains?|surges?|tumbles?|climbs?|slides?|plunges?|rallies?)\s+\d",
+        re.I,
+    ),
+    re.compile(
+        r"\bshares?\s+(up|down|rose|fell|drops?|gains?|surges?|tumbles?|climbs?|slides?|plunges?|rallies?)\s+\d",
+        re.I,
+    ),
+    re.compile(r"\btop\s+\d+\s+(stocks?|picks?|names?|companies)", re.I),
+    re.compile(r"\b\d+\s+(stocks?|shares?|names?)\s+to\s+(watch|buy|avoid|consider|own)", re.I),
+    re.compile(r"\bstocks?\s+to\s+(watch|buy|avoid|consider|own)", re.I),
+    re.compile(r"\bbest\s+\d+\s+stocks?", re.I),
+    re.compile(r"\bwhy\s+.{0,50}(could|might|may)\s+(rise|fall|rally|drop|surge|tumble)", re.I),
+    re.compile(r"\binsider\s+(buys?|sells?|purchased|sold)\s+[\d,]+\s+shares?", re.I),
+    re.compile(r"\b(etf|index)\s+(adds?|removes?|rebalances?|reconstitut)", re.I),
+    re.compile(r"\bweekly\s+(recap|roundup|summary|wrap)", re.I),
+    re.compile(r"\b(morning|afternoon|evening)\s+(brief|briefing|wrap|roundup)", re.I),
 ]
+
 
 @dataclass
 class AnalysisResult:
     """Standardizes the output from the LLM layer."""
+
     ticker: str
     data: dict
     model_name: str
@@ -51,7 +59,7 @@ class RunStats:
     no_content: int = 0
     no_insight: int = 0
     llm_error: int = 0
-    saved: dict = field(default_factory=dict)       # {ticker: count}
+    saved: dict = field(default_factory=dict)  # {ticker: count}
     models_used: dict = field(default_factory=dict)  # {model_name: count}
 
     @property
@@ -63,8 +71,7 @@ class RunStats:
         get_pending_articles() call. A batch of only those made no progress
         and the caller must back off rather than immediately retry.
         """
-        return (self.regex_skipped + self.llm_skipped + self.no_insight
-                + sum(self.saved.values()))
+        return self.regex_skipped + self.llm_skipped + self.no_insight + sum(self.saved.values())
 
 
 def _build_monthly_context(ticker: str, lookback_days: int = 30) -> dict:
@@ -76,14 +83,17 @@ def _build_monthly_context(ticker: str, lookback_days: int = 30) -> dict:
     c = conn.cursor()
 
     # 1. Recent ticker events (last ~60 days — wider window so events aren't empty)
-    c.execute('''
+    c.execute(
+        """
         SELECT event_date, event_date_label, title, description
         FROM ticker_events
         WHERE ticker = %s
           AND event_date >= TO_CHAR(NOW() - INTERVAL '60 days', 'YYYY-MM-DD')
         ORDER BY event_date DESC
         LIMIT 15
-    ''', (ticker,))
+    """,
+        (ticker,),
+    )
     event_rows = c.fetchall()
     if event_rows:
         recent_events = "\n".join(
@@ -94,7 +104,8 @@ def _build_monthly_context(ticker: str, lookback_days: int = 30) -> dict:
         recent_events = "(no events logged in the last 60 days)"
 
     # 2. High-relevance article summaries (last N days, score > 50, top 10)
-    c.execute('''
+    c.execute(
+        """
         SELECT a.headline, a.published_at, ar.impact_headline, ar.ai_summary, ar.relevancy_score
         FROM analysis_runs ar
         JOIN articles a ON ar.article_id = a.id
@@ -103,7 +114,9 @@ def _build_monthly_context(ticker: str, lookback_days: int = 30) -> dict:
           AND ar.relevancy_score > 50
         ORDER BY ar.relevancy_score DESC, a.published_at DESC
         LIMIT 10
-    ''', (ticker, lookback_days))
+    """,
+        (ticker, lookback_days),
+    )
     article_rows = c.fetchall()
     if article_rows:
         recent_articles = "\n".join(
@@ -114,7 +127,8 @@ def _build_monthly_context(ticker: str, lookback_days: int = 30) -> dict:
         recent_articles = "(no high-relevance articles in the last 30 days)"
 
     # 3. Latest earnings + reaction (if within ~6 months)
-    c.execute('''
+    c.execute(
+        """
         SELECT e.period_label, e.report_date,
                er.beats_eps, er.beats_revenue, er.guidance_direction,
                er.reaction_summary
@@ -124,36 +138,40 @@ def _build_monthly_context(ticker: str, lookback_days: int = 30) -> dict:
           AND e.report_date >= NOW() - INTERVAL '180 days'
         ORDER BY e.report_date DESC
         LIMIT 1
-    ''', (ticker,))
+    """,
+        (ticker,),
+    )
     eq = c.fetchone()
     if eq:
         beats = []
-        if eq['beats_eps'] is not None:
+        if eq["beats_eps"] is not None:
             beats.append(f"EPS {'beat' if eq['beats_eps'] else 'miss'}")
-        if eq['beats_revenue'] is not None:
+        if eq["beats_revenue"] is not None:
             beats.append(f"revenue {'beat' if eq['beats_revenue'] else 'miss'}")
         beat_str = ", ".join(beats) if beats else "beat/miss unknown"
-        guidance = eq['guidance_direction'] or "unknown"
-        summary = (eq['reaction_summary'] or "").strip()
+        guidance = eq["guidance_direction"] or "unknown"
+        summary = (eq["reaction_summary"] or "").strip()
         earnings_context = (
             f"{eq['period_label']} reported {eq['report_date']} — "
-            f"{beat_str}, guidance {guidance}."
-            + (f" {summary}" if summary else "")
+            f"{beat_str}, guidance {guidance}." + (f" {summary}" if summary else "")
         )
     else:
         earnings_context = "(no recent earnings within 6 months)"
 
     # 4. Most recent yearly summary as backdrop
-    c.execute('''
+    c.execute(
+        """
         SELECT period_value, short_content, content
         FROM summaries
         WHERE ticker = %s AND period_type = 'yearly'
         ORDER BY period_value DESC
         LIMIT 1
-    ''', (ticker,))
+    """,
+        (ticker,),
+    )
     yr = c.fetchone()
     if yr:
-        text = yr['short_content'] or (yr['content'] or '')[:400]
+        text = yr["short_content"] or (yr["content"] or "")[:400]
         yearly_context = f"[{yr['period_value']}] {text}"
     else:
         yearly_context = "(no yearly summary available)"
@@ -161,10 +179,10 @@ def _build_monthly_context(ticker: str, lookback_days: int = 30) -> dict:
     conn.close()
 
     return {
-        "recent_events":   recent_events,
+        "recent_events": recent_events,
         "recent_articles": recent_articles,
         "earnings_context": earnings_context,
-        "yearly_context":  yearly_context,
+        "yearly_context": yearly_context,
     }
 
 
@@ -191,7 +209,9 @@ def generate_focal_points(ticker: str = "NVDA", commit: bool = True) -> str:
 
     # 2. Monthly news flow
     mnf_artefact = database.get_monthly_news_flow(ticker)
-    monthly_news_flow = mnf_artefact["content"] if mnf_artefact else "(no monthly news flow available)"
+    monthly_news_flow = (
+        mnf_artefact["content"] if mnf_artefact else "(no monthly news flow available)"
+    )
 
     prompt = prompts.focal_points_prompt.format(
         ticker=ticker,
@@ -223,8 +243,9 @@ def generate_focal_points(ticker: str = "NVDA", commit: bool = True) -> str:
     return content
 
 
-def generate_monthly_news_flow(ticker: str = "NVDA", lookback_days: int = 30,
-                               commit: bool = True) -> str:
+def generate_monthly_news_flow(
+    ticker: str = "NVDA", lookback_days: int = 30, commit: bool = True
+) -> str:
     """
     Generates a 2-3 paragraph 'Monthly News Flow' prose summary for the ticker.
     Uses Grok with live search on top of DB context.
@@ -304,7 +325,7 @@ def generate_ticker_header(ticker="NVDA"):
 
 def analyze_article_impact(article):
     """
-    Determines if we need a 'Master Split' (find tickers first) 
+    Determines if we need a 'Master Split' (find tickers first)
     or a 'Single Shot' (analyze immediately).
 
     Then calls llms to analyze the article
@@ -313,35 +334,33 @@ def analyze_article_impact(article):
     llm_manager = llms.LLMProviderManager()
 
     # Use the best available content
-    if article.get('full_text'):
-        #content = article['full_text'][:35000] # Cap to save tokens
-        content = article['full_text']
+    if article.get("full_text"):
+        # content = article['full_text'][:35000] # Cap to save tokens
+        content = article["full_text"]
         src = "Full Scraped Text"
     else:
         content = f"Headline: {article['headline']}\nSummary: {article['api_summary']}"
         src = "API Summary (Scrape unavailable)"
 
-    url = article.get('url')
+    url = article.get("url")
     results_container = []
 
     # --- STRATEGY A: Divide into multiple LLM calls ---
     if src == "Full Scraped Text" and len(content) > 1000:
         # Step 1: Identify Tickers
-        print('analyze_article_impact: Using master prompt to divide work per ticker')
-        prompt_master = prompts.ticker_identify_prompt.format(
-        src=src, 
-        url=url, 
-        content=content
+        print("analyze_article_impact: Using master prompt to divide work per ticker")
+        prompt_master = prompts.ticker_identify_prompt.format(src=src, url=url, content=content)
+
+        ticker_csv, model_used = llm_manager.call(
+            prompt_master, tier="economy", max_tier="standard", reasoning=False
         )
 
-        ticker_csv, model_used = llm_manager.call(prompt_master, tier="economy", max_tier="standard", reasoning=False)
-
         if not model_used:
-            print('LLM unavailable for ticker identification.')
+            print("LLM unavailable for ticker identification.")
             return None  # Hard failure — all providers down
 
-        print(f'ticker_csv_response={ticker_csv}')
-        print(f'model used={model_used}')
+        print(f"ticker_csv_response={ticker_csv}")
+        print(f"model used={model_used}")
 
         tickers = utils.csv_to_tickers(ticker_csv)
         if not tickers or tickers == -1 or len(tickers) == 0:
@@ -354,37 +373,41 @@ def analyze_article_impact(article):
             tickers = [t for t in tickers if t in active]
             dropped = [t for t in before if t not in active]
             if dropped:
-                print(f'  [watchlist filter] dropped {dropped}, keeping {tickers}')
+                print(f"  [watchlist filter] dropped {dropped}, keeping {tickers}")
             if not tickers:
                 return []
 
         # Step 2: Analyze per Ticker
         for ticker in tickers:
             prompt = prompts.analyze_article_impact_prompt_single_ticker_v1.format(
-            src=src,
-            url=url,
-            ticker=ticker,
-            content=content
+                src=src, url=url, ticker=ticker, content=content
             )
             try:
-                res_text, model_used = llm_manager.call(prompt, tier="economy", max_tier="standard", reasoning=False)
+                res_text, model_used = llm_manager.call(
+                    prompt, tier="economy", max_tier="standard", reasoning=False
+                )
                 data = utils.clean_json_response(res_text)
 
                 # Normalise: LLM may return a list despite being asked for one ticker
                 if isinstance(data, list):
                     # Prefer the entry matching the expected ticker; fall back to first
-                    data = next((d for d in data if isinstance(d, dict) and d.get('ticker') == ticker), data[0] if data else None)
+                    data = next(
+                        (d for d in data if isinstance(d, dict) and d.get("ticker") == ticker),
+                        data[0] if data else None,
+                    )
 
-                print(f'data={data}')
+                print(f"data={data}")
                 if data and isinstance(data, dict):
-                    data['ticker'] = ticker  # Force consistency
-                    results_container.append(AnalysisResult(
-                        ticker=ticker,
-                        data=data,
-                        model_name=model_used,
-                        prompt_text=prompt,
-                        prompt_id="analyze_article_impact_prompt_single_ticker_v1"
-                    ))
+                    data["ticker"] = ticker  # Force consistency
+                    results_container.append(
+                        AnalysisResult(
+                            ticker=ticker,
+                            data=data,
+                            model_name=model_used,
+                            prompt_text=prompt,
+                            prompt_id="analyze_article_impact_prompt_single_ticker_v1",
+                        )
+                    )
             except Exception as e:
                 print(f"LLM Error [{ticker}]: {e}")
                 # Continue to next ticker — one bad parse shouldn't abort the article
@@ -392,15 +415,13 @@ def analyze_article_impact(article):
     # --- STRATEGY B: SHORT CONTENT (Single Shot) ---
     else:
         # One LLM call that does all the work
-        print('analyze_article_impact: Using one llm call to do all the work')
-        prompt = prompts.analyze_article_impact_prompt_v1.format(
-            src=src, 
-            url=url, 
-            content=content
-        )
-        
+        print("analyze_article_impact: Using one llm call to do all the work")
+        prompt = prompts.analyze_article_impact_prompt_v1.format(src=src, url=url, content=content)
+
         try:
-            res_text, model_used = llm_manager.call(prompt, tier="economy", max_tier="standard", reasoning=False)
+            res_text, model_used = llm_manager.call(
+                prompt, tier="economy", max_tier="standard", reasoning=False
+            )
             data = utils.clean_json_response(res_text)
             # Handle case where LLM returns a LIST of objects vs a single object
             if isinstance(data, list):
@@ -409,14 +430,16 @@ def analyze_article_impact(article):
                 items = [data]
 
             for item in items:
-                if item and 'ticker' in item:
-                    results_container.append(AnalysisResult(
-                        ticker=item['ticker'],
-                        data=item,
-                        model_name=model_used,
-                        prompt_text=prompt,
-                        prompt_id="analyze_article_impact_prompt_v1"
-                    ))
+                if item and "ticker" in item:
+                    results_container.append(
+                        AnalysisResult(
+                            ticker=item["ticker"],
+                            data=item,
+                            model_name=model_used,
+                            prompt_text=prompt,
+                            prompt_id="analyze_article_impact_prompt_v1",
+                        )
+                    )
 
         except Exception as e:
             print(f"LLM Error: {e}")
@@ -425,7 +448,7 @@ def analyze_article_impact(article):
     return results_container
 
 
-#Find an url in the db and run an analysis on that only
+# Find an url in the db and run an analysis on that only
 def analyze_url(target_url):
     """
     Fetches a single article from the DB by URL and runs the analysis on it.
@@ -438,17 +461,17 @@ def analyze_url(target_url):
     c.execute("SELECT * FROM articles WHERE url = %s", (target_url,))
     row = c.fetchone()
     conn.close()
-    
+
     if not row:
         print(f"❌ URL not found in database: {target_url}")
         return
-        
+
     article = dict(row)
     print(f"🚀 Starting manual analysis for: {article.get('headline')[:50]}...")
-    
+
     # 2. Run analysis
     # We wrap the single article in a list because the function expects a list
-    #return run_multi_ticker_analysis_with_save([article])
+    # return run_multi_ticker_analysis_with_save([article])
     return run_analysis_pipeline([article])
 
 
@@ -462,7 +485,9 @@ def _is_llm_noise(headline: str, api_summary: str) -> bool:
         headline=headline,
         summary=(api_summary or "")[:500],
     )
-    result, _ = llms.llm_manager.call(prompt, tier="economy", max_tier="economy", reasoning=False, max_tokens=5)
+    result, _ = llms.llm_manager.call(
+        prompt, tier="economy", max_tier="economy", reasoning=False, max_tokens=5
+    )
     if not result:
         return False  # LLM unavailable — let it through
     return result.strip().upper().startswith("NO")
@@ -545,7 +570,9 @@ def _print_run_summary(stats: RunStats):
     saved_parts = "  ".join(f"{t}={n}" for t, n in sorted(stats.saved.items()))
     saved_str = f"{saved_parts}  (total={total_saved})" if saved_parts else "none"
 
-    models_str = "  ".join(f"{m}={n}" for m, n in sorted(stats.models_used.items(), key=lambda x: -x[1]))
+    models_str = "  ".join(
+        f"{m}={n}" for m, n in sorted(stats.models_used.items(), key=lambda x: -x[1])
+    )
     if not models_str:
         models_str = "none"
 
@@ -617,13 +644,13 @@ def run_analysis_pipeline(articles: list[dict], stats: RunStats = None):
 
     for article in articles:
         # Check if we already have text in memory or DB
-        if article.get('full_text'):
+        if article.get("full_text"):
             continue
 
         # Check DB for content
-        existing_text = database.get_article_text(article['id'])
+        existing_text = database.get_article_text(article["id"])
         if existing_text:
-            article['full_text'] = existing_text
+            article["full_text"] = existing_text
         else:
             articles_to_scrape.append(article)
 
@@ -636,12 +663,12 @@ def run_analysis_pipeline(articles: list[dict], stats: RunStats = None):
 
         for article, result in zip(articles_to_scrape, results, strict=True):
             if result.text:
-                article['full_text'] = result.text
-                database.mark_scrape_success_and_save(article['id'], result.text)
+                article["full_text"] = result.text
+                database.mark_scrape_success_and_save(article["id"], result.text)
                 if stats is not None:
                     stats.scrape_success += 1
             else:
-                database.mark_scrape_failed(article['id'], result.error)
+                database.mark_scrape_failed(article["id"], result.error)
                 if stats is not None:
                     stats.scrape_failed += 1
 
@@ -649,15 +676,15 @@ def run_analysis_pipeline(articles: list[dict], stats: RunStats = None):
     print(f"\n--- Analyzing {total} articles ---")
 
     for i, article in enumerate(articles):
-        headline = article.get('headline', 'Unknown')[:30]
-        print(f"[{i+1}/{total}] {headline}...", end="", flush=True)
+        headline = article.get("headline", "Unknown")[:30]
+        print(f"[{i + 1}/{total}] {headline}...", end="", flush=True)
 
         # Skip if scrape failed completely
-        if not article.get('full_text') and not article.get('api_summary'):
-             print(" -> SKIPPING (No content)")
-             if stats is not None:
-                 stats.no_content += 1
-             continue
+        if not article.get("full_text") and not article.get("api_summary"):
+            print(" -> SKIPPING (No content)")
+            if stats is not None:
+                stats.no_content += 1
+            continue
 
         # 1. CALL LLM LAYER
         results = analyze_article_impact(article)
@@ -670,7 +697,7 @@ def run_analysis_pipeline(articles: list[dict], stats: RunStats = None):
 
         if not results:
             print(" -> No actionable insights found.")
-            database.mark_analysis_done(article['id'])
+            database.mark_analysis_done(article["id"])
             if stats is not None:
                 stats.no_insight += 1
             continue
@@ -686,18 +713,18 @@ def run_analysis_pipeline(articles: list[dict], stats: RunStats = None):
 
             # Safe extraction using .get()
             saved = database.save_analysis_result(
-                article_id=article['id'],
+                article_id=article["id"],
                 ticker=res.ticker,
                 model=res.model_name,
                 prompt_id=res.prompt_id,
                 prompt=res.prompt_text,
-                impact_headline=data.get('impact_headline'),
-                reasoning=data.get('_reasoning') or data.get('reasoning', ''),
-                summary=data.get('summary') or data.get('ai_summary', ''),
-                relevance=data.get('relevance_score', 0),
-                breaking=data.get('breaking_news_score', 0),
-                importance=data.get('importance_score', 0),
-                full_text=article.get('full_text') # Ensure text is synced
+                impact_headline=data.get("impact_headline"),
+                reasoning=data.get("_reasoning") or data.get("reasoning", ""),
+                summary=data.get("summary") or data.get("ai_summary", ""),
+                relevance=data.get("relevance_score", 0),
+                breaking=data.get("breaking_news_score", 0),
+                importance=data.get("importance_score", 0),
+                full_text=article.get("full_text"),  # Ensure text is synced
             )
             if saved:
                 count += 1
@@ -706,20 +733,22 @@ def run_analysis_pipeline(articles: list[dict], stats: RunStats = None):
                     stats.models_used[res.model_name] = stats.models_used.get(res.model_name, 0) + 1
 
         print(f" -> Saved {count} ticker insights.")
-        time.sleep(1.5) # Rate limiting
+        time.sleep(1.5)  # Rate limiting
 
     return articles
 
 
 # ── Ticker Completion Pipeline ────────────────────────────────────────────────
 
+
 def _artefact_age_days(ticker: str, artefact_type: str):
     """Returns age of the most recent artefact in days, or None if it doesn't exist."""
     from datetime import datetime
+
     artefact = database.get_ticker_artefact(ticker, artefact_type)
-    if not artefact or not artefact.get('generated_at'):
+    if not artefact or not artefact.get("generated_at"):
         return None
-    generated_at = artefact['generated_at']
+    generated_at = artefact["generated_at"]
     if generated_at.tzinfo is None:
         generated_at = generated_at.replace(tzinfo=UTC)
     return (datetime.now(UTC) - generated_at).total_seconds() / 86400
@@ -737,7 +766,7 @@ def refresh_ticker_artefacts(ticker: str, max_age_days: int = 7, force: bool = F
     """
     print(f"[refresh_artefacts] {ticker} (max_age_days={max_age_days}, force={force})")
 
-    mnf_age = _artefact_age_days(ticker, 'monthly_news_flow')
+    mnf_age = _artefact_age_days(ticker, "monthly_news_flow")
     mnf_stale = force or mnf_age is None or mnf_age > max_age_days
     mnf_regenerated = False
 
@@ -752,11 +781,19 @@ def refresh_ticker_artefacts(ticker: str, max_age_days: int = 7, force: bool = F
     else:
         print(f"[refresh_artefacts] {ticker} monthly_news_flow ok (age={mnf_age:.1f}d)")
 
-    fp_age = _artefact_age_days(ticker, 'focal_points')
+    fp_age = _artefact_age_days(ticker, "focal_points")
     fp_stale = force or fp_age is None or fp_age > max_age_days or mnf_regenerated
 
     if fp_stale:
-        reason = "forced" if force else ("missing" if fp_age is None else ("mnf updated" if mnf_regenerated else f"age={fp_age:.1f}d"))
+        reason = (
+            "forced"
+            if force
+            else (
+                "missing"
+                if fp_age is None
+                else ("mnf updated" if mnf_regenerated else f"age={fp_age:.1f}d")
+            )
+        )
         print(f"[refresh_artefacts] {ticker} focal_points regenerating ({reason})")
         try:
             generate_focal_points(ticker)
@@ -824,6 +861,7 @@ def run_ticker_completion_pipeline(ticker: str, force: bool = False) -> dict:
     step = "earnings_transcripts"
     try:
         import ingest_earnings
+
         ingest_earnings.run(ticker, limit=20, fiscal_year=None, fiscal_quarter=None, commit=True)
         results[step] = "ok"
     except Exception as e:
@@ -891,9 +929,9 @@ def run_completion_pipeline_for_all_pending(force: bool = False) -> None:
     print(f"Found {len(tickers)} tickers with summaries: {', '.join(tickers)}\n")
 
     for ticker in tickers:
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f" Starting completion pipeline for {ticker}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         run_ticker_completion_pipeline(ticker, force=force)
 
 

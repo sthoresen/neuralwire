@@ -1,4 +1,5 @@
 """FastAPI bridge — wraps python_backend without modifying it."""
+
 import os
 import sys
 
@@ -48,6 +49,7 @@ def _available_tickers() -> list[str]:
 
 # ── Endpoints ──────────────────────────────────────────────────────────────
 
+
 @app.get("/tickers")
 def list_tickers():
     """Return all tickers that have a header_description artefact."""
@@ -63,7 +65,8 @@ def ticker_header(ticker: str):
     accent_light = tc.darken_hex(accent)
     artefact = database.get_ticker_artefact(ticker, "header_description")
     description = (
-        artefact["content"] if artefact
+        artefact["content"]
+        if artefact
         else f"{cls.get('long_name', ticker)} is a publicly traded company."
     )
     return {
@@ -118,12 +121,17 @@ def _refresh_intraday(db_ticker: str):
 def ticker_intraday(ticker: str, background_tasks: BackgroundTasks):
     """Return intraday (1-min) prices. Triggers a background refresh if market is open and data is stale."""
     from datetime import date, timedelta
+
     ticker = utils.to_db_ticker(ticker.upper())
     if _market_is_open() and _intraday_is_stale(ticker):
         background_tasks.add_task(_refresh_intraday, ticker)
     window_start = str(date.today() - timedelta(days=7))
     rows = market_data.get_intraday(ticker, start=window_start)
-    return {"ticker": utils.to_display_ticker(ticker), "intraday": rows or [], "market_open": _market_is_open()}
+    return {
+        "ticker": utils.to_display_ticker(ticker),
+        "intraday": rows or [],
+        "market_open": _market_is_open(),
+    }
 
 
 @app.get("/ticker/{ticker}/articles")
@@ -136,7 +144,8 @@ def ticker_articles(
     ticker = utils.to_db_ticker(ticker.upper())
     conn = get_conn(dict_cursor=True)
     c = conn.cursor()
-    c.execute("""
+    c.execute(
+        """
         SELECT ar.impact_headline, a.headline, a.url, a.published_at, a.provider,
                ar.ai_summary, ar.importance_score, ar.relevancy_score, ar.breaking_news_score
         FROM analysis_runs ar
@@ -144,7 +153,9 @@ def ticker_articles(
         WHERE ar.ticker = %s AND a.published_at >= NOW() - (%s * INTERVAL '1 day')
         ORDER BY a.published_at DESC
         LIMIT %s
-    """, (ticker, lookback_days, limit))
+    """,
+        (ticker, lookback_days, limit),
+    )
     rows = c.fetchall()
     conn.close()
     return {"ticker": utils.to_display_ticker(ticker), "articles": [dict(r) for r in rows]}
@@ -162,7 +173,8 @@ def ticker_coverage(
     ticker = utils.to_db_ticker(ticker.upper())
     conn = get_conn(dict_cursor=True)
     c = conn.cursor()
-    c.execute("""
+    c.execute(
+        """
         SELECT ar.impact_headline, a.headline, a.url, a.published_at, a.provider,
                ar.ai_summary, ar.importance_score, ar.relevancy_score, ar.breaking_news_score,
                ar.ticker
@@ -174,7 +186,9 @@ def ticker_coverage(
           AND ar.importance_score    >= %s
         ORDER BY a.published_at DESC
         LIMIT %s
-    """, (ticker, min_relevance, min_breaking, min_importance, limit))
+    """,
+        (ticker, min_relevance, min_breaking, min_importance, limit),
+    )
     rows = c.fetchall()
     conn.close()
     # Deduplicate by URL
@@ -194,7 +208,12 @@ def ticker_focal_points(ticker: str):
     ticker = utils.to_db_ticker(ticker.upper())
     artefact = database.get_focal_points(ticker)
     if not artefact:
-        return {"ticker": utils.to_display_ticker(ticker), "content": None, "generated_at": None, "model_name": None}
+        return {
+            "ticker": utils.to_display_ticker(ticker),
+            "content": None,
+            "generated_at": None,
+            "model_name": None,
+        }
     return {
         "ticker": utils.to_display_ticker(ticker),
         "content": artefact["content"],
@@ -209,7 +228,12 @@ def ticker_monthly_news_flow(ticker: str):
     ticker = utils.to_db_ticker(ticker.upper())
     artefact = database.get_monthly_news_flow(ticker)
     if not artefact:
-        return {"ticker": utils.to_display_ticker(ticker), "content": None, "generated_at": None, "model_name": None}
+        return {
+            "ticker": utils.to_display_ticker(ticker),
+            "content": None,
+            "generated_at": None,
+            "model_name": None,
+        }
     return {
         "ticker": utils.to_display_ticker(ticker),
         "content": artefact["content"],

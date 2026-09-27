@@ -15,7 +15,7 @@ def init_db():
     c = conn.cursor()
 
     # A. Historical Summaries (Your Bootstrap Data)
-    c.execute('''
+    c.execute("""
     CREATE TABLE IF NOT EXISTS summaries (
         id           SERIAL PRIMARY KEY,
         ticker       TEXT,
@@ -26,10 +26,10 @@ def init_db():
         sources      TEXT,
         last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
-    ''')
+    """)
 
     # B. Articles Registry (Fast Metadata)
-    c.execute('''
+    c.execute("""
     CREATE TABLE IF NOT EXISTS articles (
         id              SERIAL PRIMARY KEY,
         url             TEXT UNIQUE,
@@ -43,10 +43,10 @@ def init_db():
         scrape_error    TEXT,
         created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
-    ''')
+    """)
 
     # C. Article Content (Heavy Storage)
-    c.execute('''
+    c.execute("""
     CREATE TABLE IF NOT EXISTS article_content (
         article_id    INTEGER PRIMARY KEY,
         raw_full_text TEXT,
@@ -54,10 +54,10 @@ def init_db():
         scraped_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(article_id) REFERENCES articles(id)
     )
-    ''')
+    """)
 
     # D. Analysis Runs (AI Insights)
-    c.execute('''
+    c.execute("""
     CREATE TABLE IF NOT EXISTS analysis_runs (
         id                  SERIAL PRIMARY KEY,
         article_id          INTEGER,
@@ -75,10 +75,10 @@ def init_db():
         run_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(article_id) REFERENCES articles(id)
     )
-    ''')
+    """)
 
     # E. Ticker Artefacts (Meta-Analyses for UI boxes)
-    c.execute('''
+    c.execute("""
     CREATE TABLE IF NOT EXISTS ticker_artefacts (
         id            SERIAL PRIMARY KEY,
         ticker        TEXT NOT NULL,
@@ -89,10 +89,10 @@ def init_db():
         prompt        TEXT,
         generated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
-    ''')
+    """)
 
     # F. Ticker Events (Structured, append-only event log)
-    c.execute('''
+    c.execute("""
     CREATE TABLE IF NOT EXISTS ticker_events (
         id               SERIAL PRIMARY KEY,
         ticker           TEXT NOT NULL,
@@ -105,10 +105,10 @@ def init_db():
         model_name       TEXT,
         created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
-    ''')
+    """)
 
     # G. Earnings Anchor
-    c.execute('''
+    c.execute("""
     CREATE TABLE IF NOT EXISTS earnings (
         id           SERIAL PRIMARY KEY,
         ticker       TEXT NOT NULL,
@@ -119,10 +119,10 @@ def init_db():
         created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(ticker, report_date)
     )
-    ''')
+    """)
 
     # H. Earnings Documents
-    c.execute('''
+    c.execute("""
     CREATE TABLE IF NOT EXISTS earnings_documents (
         id                SERIAL PRIMARY KEY,
         earnings_id       INTEGER NOT NULL REFERENCES earnings(id),
@@ -134,10 +134,10 @@ def init_db():
         source_article_id INTEGER REFERENCES articles(id),
         created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
-    ''')
+    """)
 
     # I. Earnings Reactions
-    c.execute('''
+    c.execute("""
     CREATE TABLE IF NOT EXISTS earnings_reactions (
         id                       SERIAL PRIMARY KEY,
         earnings_id              INTEGER NOT NULL UNIQUE REFERENCES earnings(id),
@@ -150,15 +150,15 @@ def init_db():
         model_name               TEXT,
         generated_at             TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
-    ''')
+    """)
 
     # J. App Settings (key/value config store)
-    c.execute('''
+    c.execute("""
     CREATE TABLE IF NOT EXISTS app_settings (
         key   TEXT PRIMARY KEY,
         value TEXT NOT NULL
     )
-    ''')
+    """)
 
     conn.commit()
     conn.close()
@@ -172,7 +172,7 @@ def init_ticker_artefacts_table():
     """
     conn = get_conn()
     c = conn.cursor()
-    c.execute('''
+    c.execute("""
     CREATE TABLE IF NOT EXISTS ticker_artefacts (
         id            SERIAL PRIMARY KEY,
         ticker        TEXT NOT NULL,
@@ -183,7 +183,7 @@ def init_ticker_artefacts_table():
         prompt        TEXT,
         generated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
-    ''')
+    """)
     conn.commit()
     conn.close()
     print("ticker_artefacts table ready.")
@@ -211,7 +211,8 @@ def get_unchecked_analyses(ticker, limit=50):
     """
     conn = get_conn(dict_cursor=True)
     c = conn.cursor()
-    c.execute('''
+    c.execute(
+        """
         SELECT ar.id, ar.article_id, ar.ticker,
                ar.impact_headline, ar.ai_summary,
                a.headline, a.published_at, a.url
@@ -221,7 +222,9 @@ def get_unchecked_analyses(ticker, limit=50):
           AND (ar.event_check_status = 'pending' OR ar.event_check_status IS NULL)
         ORDER BY a.published_at ASC
         LIMIT %s
-    ''', (ticker, limit))
+    """,
+        (ticker, limit),
+    )
     rows = [dict(r) for r in c.fetchall()]
     conn.close()
     return rows
@@ -236,7 +239,7 @@ def mark_analyses_event_checked(ids):
     try:
         c.execute(
             "UPDATE analysis_runs SET event_check_status = 'checked' WHERE id = ANY(%s)",
-            (list(ids),)
+            (list(ids),),
         )
         conn.commit()
     finally:
@@ -251,7 +254,7 @@ def migrate_add_earnings_tables():
     conn = get_conn()
     c = conn.cursor()
 
-    c.execute('''
+    c.execute("""
     CREATE TABLE IF NOT EXISTS ticker_events (
         id               SERIAL PRIMARY KEY,
         ticker           TEXT NOT NULL,
@@ -264,9 +267,9 @@ def migrate_add_earnings_tables():
         model_name       TEXT,
         created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
-    ''')
+    """)
 
-    c.execute('''
+    c.execute("""
     CREATE TABLE IF NOT EXISTS earnings (
         id           SERIAL PRIMARY KEY,
         ticker       TEXT NOT NULL,
@@ -277,9 +280,9 @@ def migrate_add_earnings_tables():
         created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(ticker, report_date)
     )
-    ''')
+    """)
 
-    c.execute('''
+    c.execute("""
     CREATE TABLE IF NOT EXISTS earnings_documents (
         id                SERIAL PRIMARY KEY,
         earnings_id       INTEGER NOT NULL REFERENCES earnings(id),
@@ -291,9 +294,9 @@ def migrate_add_earnings_tables():
         source_article_id INTEGER REFERENCES articles(id),
         created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
-    ''')
+    """)
 
-    c.execute('''
+    c.execute("""
     CREATE TABLE IF NOT EXISTS earnings_reactions (
         id                       SERIAL PRIMARY KEY,
         earnings_id              INTEGER NOT NULL UNIQUE REFERENCES earnings(id),
@@ -306,7 +309,7 @@ def migrate_add_earnings_tables():
         model_name               TEXT,
         generated_at             TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
-    ''')
+    """)
 
     conn.commit()
     conn.close()
@@ -324,24 +327,27 @@ def insert_raw_article(ticker, data):
     article_id = None
 
     try:
-        c.execute("SELECT id FROM articles WHERE url = %s", (data.get('url'),))
+        c.execute("SELECT id FROM articles WHERE url = %s", (data.get("url"),))
         row = c.fetchone()
 
         if row:
             return None  # Duplicate
 
-        c.execute('''
+        c.execute(
+            """
             INSERT INTO articles (url, ticker, headline, provider, api_summary, published_at)
             VALUES (%s, %s, %s, %s, %s, %s)
             RETURNING id
-        ''', (
-            data.get('url'),
-            ticker,
-            data.get('title'),
-            data.get('source'),
-            data.get('summary'),
-            data.get('time_published'),
-        ))
+        """,
+            (
+                data.get("url"),
+                ticker,
+                data.get("title"),
+                data.get("source"),
+                data.get("summary"),
+                data.get("time_published"),
+            ),
+        )
         article_id = c.fetchone()[0]
         conn.commit()
     except Exception as e:
@@ -352,8 +358,20 @@ def insert_raw_article(ticker, data):
     return article_id
 
 
-def save_analysis_result(article_id, ticker, model, prompt_id, prompt,
-                         impact_headline, reasoning, summary, relevance, breaking, importance, full_text=None):
+def save_analysis_result(
+    article_id,
+    ticker,
+    model,
+    prompt_id,
+    prompt,
+    impact_headline,
+    reasoning,
+    summary,
+    relevance,
+    breaking,
+    importance,
+    full_text=None,
+):
     """
     Saves a ticker-specific AI analysis to the database.
     """
@@ -370,22 +388,37 @@ def save_analysis_result(article_id, ticker, model, prompt_id, prompt,
 
     try:
         if full_text:
-            c.execute('''
+            c.execute(
+                """
                 INSERT INTO article_content (article_id, curated_text)
                 VALUES (%s, %s)
                 ON CONFLICT (article_id) DO NOTHING
-            ''', (article_id, full_text))
+            """,
+                (article_id, full_text),
+            )
 
-        c.execute('''
+        c.execute(
+            """
             INSERT INTO analysis_runs (
                 article_id, ticker, model_name, prompt_id, prompt,
                 impact_headline, reasoning, ai_summary, relevancy_score, breaking_news_score, importance_score
             )
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (
-            article_id, ticker, model, prompt_id, prompt,
-            impact_headline, reasoning, summary, relevance, breaking, importance
-        ))
+        """,
+            (
+                article_id,
+                ticker,
+                model,
+                prompt_id,
+                prompt,
+                impact_headline,
+                reasoning,
+                summary,
+                relevance,
+                breaking,
+                importance,
+            ),
+        )
 
         c.execute("UPDATE articles SET analysis_status = 'success' WHERE id = %s", (article_id,))
 
@@ -406,9 +439,9 @@ def visualize_db():
     conn = get_conn()
     c = conn.cursor()
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print(" PIPELINE HEALTH REPORT")
-    print("="*60)
+    print("=" * 60)
 
     c.execute("SELECT COUNT(*) FROM articles")
     total_articles = c.fetchone()[0]
@@ -417,9 +450,9 @@ def visualize_db():
     c.execute("SELECT scrape_status, COUNT(*) FROM articles GROUP BY scrape_status")
     scrape_stats = dict(c.fetchall())
 
-    s_p = scrape_stats.get('pending', 0)
-    s_s = scrape_stats.get('success', 0)
-    s_f = scrape_stats.get('failed', 0)
+    s_p = scrape_stats.get("pending", 0)
+    s_s = scrape_stats.get("success", 0)
+    s_f = scrape_stats.get("failed", 0)
 
     print("\n[SCRAPING STAGE]")
     print(f"{'  - Scraped Successfully:':<30} {s_s}")
@@ -429,37 +462,37 @@ def visualize_db():
     c.execute("SELECT analysis_status, COUNT(*) FROM articles GROUP BY analysis_status")
     analysis_stats = dict(c.fetchall())
 
-    a_p = analysis_stats.get('pending', 0)
-    a_s = analysis_stats.get('success', 0)
-    a_f = analysis_stats.get('failed', 0)
+    a_p = analysis_stats.get("pending", 0)
+    a_s = analysis_stats.get("success", 0)
+    a_f = analysis_stats.get("failed", 0)
 
     print("\n[AI ANALYSIS STAGE]")
     print(f"{'  - Analyzed Successfully:':<30} {a_s}")
     print(f"{'  - Analysis Failed:':<30} {a_f}")
     print(f"{'  - Analysis Pending:':<30} {a_p}")
 
-    c.execute('''
+    c.execute("""
         SELECT COUNT(*) FROM articles
         WHERE scrape_status = 'failed' AND analysis_status = 'success'
-    ''')
+    """)
     fallback_count = c.fetchone()[0]
 
-    c.execute('''
+    c.execute("""
         SELECT COUNT(*) FROM articles
         WHERE scrape_status = 'success' AND analysis_status = 'pending'
-    ''')
+    """)
     bottleneck_count = c.fetchone()[0]
 
     print("\n[PIPELINE INSIGHTS]")
     print(f"  - Analyzed via API summary only (Scrape failed): {fallback_count}")
     print(f"  - Scraped successfully but awaiting AI:        {bottleneck_count}")
 
-    c.execute('''
+    c.execute("""
         SELECT prompt_id, COUNT(*)
         FROM analysis_runs
         GROUP BY prompt_id
         ORDER BY COUNT(*) DESC
-    ''')
+    """)
     prompts = c.fetchall()
 
     if prompts:
@@ -472,7 +505,7 @@ def visualize_db():
     else:
         print("\n[PROMPT BREAKDOWN] No analysis records found yet.")
 
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
     conn.close()
 
 
@@ -494,20 +527,26 @@ def mark_scrape_success_and_save(article_id, full_text):
     c = conn.cursor()
 
     try:
-        c.execute('''
+        c.execute(
+            """
             INSERT INTO article_content (article_id, raw_full_text, scraped_at)
             VALUES (%s, %s, CURRENT_TIMESTAMP)
             ON CONFLICT (article_id) DO UPDATE SET
                 raw_full_text = EXCLUDED.raw_full_text,
                 scraped_at    = CURRENT_TIMESTAMP
-        ''', (article_id, full_text))
+        """,
+            (article_id, full_text),
+        )
 
-        c.execute('''
+        c.execute(
+            """
             UPDATE articles
             SET scrape_status = 'success',
                 scrape_error  = NULL
             WHERE id = %s
-        ''', (article_id,))
+        """,
+            (article_id,),
+        )
 
         conn.commit()
     except Exception as e:
@@ -525,12 +564,15 @@ def mark_scrape_failed(article_id, error_msg):
     c = conn.cursor()
 
     try:
-        c.execute('''
+        c.execute(
+            """
             UPDATE articles
             SET scrape_status = 'failed',
                 scrape_error  = %s
             WHERE id = %s
-        ''', (error_msg, article_id))
+        """,
+            (error_msg, article_id),
+        )
         conn.commit()
     except Exception as e:
         print(f"Error logging scrape failure for ID {article_id}: {e}")
@@ -573,12 +615,15 @@ def get_pending_articles(limit=20):
     """
     conn = get_conn(dict_cursor=True)
     c = conn.cursor()
-    c.execute('''
+    c.execute(
+        """
         SELECT * FROM articles
         WHERE analysis_status = 'pending'
         ORDER BY published_at DESC
         LIMIT %s
-    ''', (limit,))
+    """,
+        (limit,),
+    )
     rows = [dict(row) for row in c.fetchall()]
     conn.close()
     return rows
@@ -617,10 +662,13 @@ def save_ticker_artefact(ticker, artefact_type, content, model_name, prompt_id, 
     conn = get_conn()
     c = conn.cursor()
     try:
-        c.execute('''
+        c.execute(
+            """
             INSERT INTO ticker_artefacts (ticker, artefact_type, content, model_name, prompt_id, prompt)
             VALUES (%s, %s, %s, %s, %s, %s)
-        ''', (ticker, artefact_type, content, model_name, prompt_id, prompt))
+        """,
+            (ticker, artefact_type, content, model_name, prompt_id, prompt),
+        )
         conn.commit()
         return True
     except Exception as e:
@@ -638,12 +686,15 @@ def get_ticker_artefact(ticker, artefact_type):
     """
     conn = get_conn(dict_cursor=True)
     c = conn.cursor()
-    c.execute('''
+    c.execute(
+        """
         SELECT * FROM ticker_artefacts
         WHERE ticker = %s AND artefact_type = %s
         ORDER BY generated_at DESC
         LIMIT 1
-    ''', (ticker, artefact_type))
+    """,
+        (ticker, artefact_type),
+    )
     row = c.fetchone()
     conn.close()
     return dict(row) if row else None
@@ -651,9 +702,17 @@ def get_ticker_artefact(ticker, artefact_type):
 
 # ── Ticker Events ─────────────────────────────────────────────────────────────
 
-def insert_ticker_event(ticker, title, description, event_date=None,
-                        event_date_label=None, sources=None,
-                        article_ids=None, model_name=None):
+
+def insert_ticker_event(
+    ticker,
+    title,
+    description,
+    event_date=None,
+    event_date_label=None,
+    sources=None,
+    article_ids=None,
+    model_name=None,
+):
     """
     Appends a new event to the ticker event log.
     sources and article_ids should be Python lists; they are stored as JSON.
@@ -661,18 +720,25 @@ def insert_ticker_event(ticker, title, description, event_date=None,
     conn = get_conn()
     c = conn.cursor()
     try:
-        c.execute('''
+        c.execute(
+            """
             INSERT INTO ticker_events
                 (ticker, title, event_date, event_date_label, description,
                  sources, article_ids, model_name)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
-        ''', (
-            ticker, title, event_date, event_date_label, description,
-            json.dumps(sources or []),
-            json.dumps(article_ids or []),
-            model_name,
-        ))
+        """,
+            (
+                ticker,
+                title,
+                event_date,
+                event_date_label,
+                description,
+                json.dumps(sources or []),
+                json.dumps(article_ids or []),
+                model_name,
+            ),
+        )
         conn.commit()
         return c.fetchone()[0]
     except Exception as e:
@@ -692,12 +758,14 @@ def bulk_insert_ticker_events(ticker, events, model_name=None, skip_if_exists=Tr
     if skip_if_exists:
         conn = get_conn()
         c = conn.cursor()
-        c.execute('SELECT COUNT(*) FROM ticker_events WHERE ticker = %s', (ticker,))
+        c.execute("SELECT COUNT(*) FROM ticker_events WHERE ticker = %s", (ticker,))
         count = c.fetchone()[0]
         conn.close()
         if count > 0:
-            print(f"[bulk_insert] Skipping — {count} events already exist for {ticker}. "
-                  f"Pass skip_if_exists=False to force.")
+            print(
+                f"[bulk_insert] Skipping — {count} events already exist for {ticker}. "
+                f"Pass skip_if_exists=False to force."
+            )
             return 0
 
     conn = get_conn()
@@ -705,21 +773,24 @@ def bulk_insert_ticker_events(ticker, events, model_name=None, skip_if_exists=Tr
     inserted = 0
     try:
         for ev in events:
-            c.execute('''
+            c.execute(
+                """
                 INSERT INTO ticker_events
                     (ticker, title, event_date, event_date_label, description,
                      sources, article_ids, model_name)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (
-                ticker,
-                ev.get('title', '').strip(),
-                ev.get('event_date'),
-                ev.get('event_date_label'),
-                ev.get('description', '').strip(),
-                json.dumps(ev.get('sources') or []),
-                json.dumps(ev.get('article_ids') or []),
-                model_name,
-            ))
+            """,
+                (
+                    ticker,
+                    ev.get("title", "").strip(),
+                    ev.get("event_date"),
+                    ev.get("event_date_label"),
+                    ev.get("description", "").strip(),
+                    json.dumps(ev.get("sources") or []),
+                    json.dumps(ev.get("article_ids") or []),
+                    model_name,
+                ),
+            )
             inserted += 1
         conn.commit()
         print(f"[bulk_insert] Inserted {inserted} events for {ticker}.")
@@ -739,14 +810,14 @@ def get_ticker_events(ticker, limit=None):
     """
     conn = get_conn(dict_cursor=True)
     c = conn.cursor()
-    query = '''
+    query = """
         SELECT * FROM ticker_events
         WHERE ticker = %s
         ORDER BY event_date DESC
-    '''
+    """
     params = [ticker]
     if limit:
-        query += ' LIMIT %s'
+        query += " LIMIT %s"
         params.append(limit)
     c.execute(query, params)
     rows = c.fetchall()
@@ -755,16 +826,18 @@ def get_ticker_events(ticker, limit=None):
     result = []
     for row in rows:
         r = dict(row)
-        r['sources'] = json.loads(r['sources'] or '[]')
-        r['article_ids'] = json.loads(r['article_ids'] or '[]')
+        r["sources"] = json.loads(r["sources"] or "[]")
+        r["article_ids"] = json.loads(r["article_ids"] or "[]")
         result.append(r)
     return result
 
 
 # ── Earnings ───────────────────────────────────────────────────────────────────
 
-def get_or_create_earnings(ticker, report_date, period_label=None,
-                           period_start=None, period_end=None):
+
+def get_or_create_earnings(
+    ticker, report_date, period_label=None, period_start=None, period_end=None
+):
     """
     Returns the earnings.id for (ticker, report_date), creating the row if needed.
     report_date: ISO string, e.g. '2024-02-21'.
@@ -773,7 +846,8 @@ def get_or_create_earnings(ticker, report_date, period_label=None,
     conn = get_conn()
     c = conn.cursor()
     try:
-        c.execute('''
+        c.execute(
+            """
             INSERT INTO earnings (ticker, report_date, period_label, period_start, period_end)
             VALUES (%s, %s, %s, %s, %s)
             ON CONFLICT(ticker, report_date) DO UPDATE SET
@@ -781,7 +855,9 @@ def get_or_create_earnings(ticker, report_date, period_label=None,
                 period_start = COALESCE(EXCLUDED.period_start, earnings.period_start),
                 period_end   = COALESCE(EXCLUDED.period_end,   earnings.period_end)
             RETURNING id
-        ''', (ticker, report_date, period_label, period_start, period_end))
+        """,
+            (ticker, report_date, period_label, period_start, period_end),
+        )
         conn.commit()
         return c.fetchone()[0]
     except Exception as e:
@@ -796,12 +872,15 @@ def get_earnings_list(ticker, limit=10):
     """Returns recent earnings events for a ticker, newest first."""
     conn = get_conn(dict_cursor=True)
     c = conn.cursor()
-    c.execute('''
+    c.execute(
+        """
         SELECT * FROM earnings
         WHERE ticker = %s
         ORDER BY report_date DESC
         LIMIT %s
-    ''', (ticker, limit))
+    """,
+        (ticker, limit),
+    )
     rows = [dict(r) for r in c.fetchall()]
     conn.close()
     return rows
@@ -813,9 +892,15 @@ def get_latest_earnings(ticker):
     return rows[0] if rows else None
 
 
-def save_earnings_document(earnings_id, doc_type, content, quality_score=50,
-                           is_preferred=False, source_url=None,
-                           source_article_id=None):
+def save_earnings_document(
+    earnings_id,
+    doc_type,
+    content,
+    quality_score=50,
+    is_preferred=False,
+    source_url=None,
+    source_article_id=None,
+):
     """
     Saves a document (transcript, press_release, presentation) linked to an earnings event.
     Multiple documents per earnings are allowed.
@@ -823,14 +908,24 @@ def save_earnings_document(earnings_id, doc_type, content, quality_score=50,
     conn = get_conn()
     c = conn.cursor()
     try:
-        c.execute('''
+        c.execute(
+            """
             INSERT INTO earnings_documents
                 (earnings_id, doc_type, content, quality_score, is_preferred,
                  source_url, source_article_id)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
             RETURNING id
-        ''', (earnings_id, doc_type, content, quality_score, is_preferred,
-              source_url, source_article_id))
+        """,
+            (
+                earnings_id,
+                doc_type,
+                content,
+                quality_score,
+                is_preferred,
+                source_url,
+                source_article_id,
+            ),
+        )
         conn.commit()
         return c.fetchone()[0]
     except Exception as e:
@@ -849,17 +944,23 @@ def get_earnings_documents(earnings_id, doc_type=None):
     conn = get_conn(dict_cursor=True)
     c = conn.cursor()
     if doc_type:
-        c.execute('''
+        c.execute(
+            """
             SELECT * FROM earnings_documents
             WHERE earnings_id = %s AND doc_type = %s
             ORDER BY quality_score DESC
-        ''', (earnings_id, doc_type))
+        """,
+            (earnings_id, doc_type),
+        )
     else:
-        c.execute('''
+        c.execute(
+            """
             SELECT * FROM earnings_documents
             WHERE earnings_id = %s
             ORDER BY quality_score DESC
-        ''', (earnings_id,))
+        """,
+            (earnings_id,),
+        )
     rows = [dict(r) for r in c.fetchall()]
     conn.close()
     return rows
@@ -867,14 +968,20 @@ def get_earnings_documents(earnings_id, doc_type=None):
 
 def get_best_transcript(earnings_id):
     """Returns the highest-quality transcript for an earnings event, or None."""
-    docs = get_earnings_documents(earnings_id, doc_type='transcript')
+    docs = get_earnings_documents(earnings_id, doc_type="transcript")
     return docs[0] if docs else None
 
 
-def upsert_earnings_reaction(earnings_id, reaction_summary, analyst_commentary,
-                             contributing_article_ids, model_name,
-                             beats_eps=None, beats_revenue=None,
-                             guidance_direction=None):
+def upsert_earnings_reaction(
+    earnings_id,
+    reaction_summary,
+    analyst_commentary,
+    contributing_article_ids,
+    model_name,
+    beats_eps=None,
+    beats_revenue=None,
+    guidance_direction=None,
+):
     """
     Creates or replaces the earnings reaction for a given earnings event.
     contributing_article_ids: Python list of article IDs.
@@ -882,7 +989,8 @@ def upsert_earnings_reaction(earnings_id, reaction_summary, analyst_commentary,
     conn = get_conn()
     c = conn.cursor()
     try:
-        c.execute('''
+        c.execute(
+            """
             INSERT INTO earnings_reactions
                 (earnings_id, beats_eps, beats_revenue, guidance_direction,
                  reaction_summary, analyst_commentary,
@@ -897,12 +1005,18 @@ def upsert_earnings_reaction(earnings_id, reaction_summary, analyst_commentary,
                 contributing_article_ids = EXCLUDED.contributing_article_ids,
                 model_name               = EXCLUDED.model_name,
                 generated_at             = CURRENT_TIMESTAMP
-        ''', (
-            earnings_id, beats_eps, beats_revenue, guidance_direction,
-            reaction_summary, analyst_commentary,
-            json.dumps(contributing_article_ids or []),
-            model_name,
-        ))
+        """,
+            (
+                earnings_id,
+                beats_eps,
+                beats_revenue,
+                guidance_direction,
+                reaction_summary,
+                analyst_commentary,
+                json.dumps(contributing_article_ids or []),
+                model_name,
+            ),
+        )
         conn.commit()
         return True
     except Exception as e:
@@ -918,8 +1032,10 @@ def delete_earnings_documents(earnings_id: int, doc_type: str) -> int:
     conn = get_conn()
     c = conn.cursor()
     try:
-        c.execute('DELETE FROM earnings_documents WHERE earnings_id = %s AND doc_type = %s',
-                  (earnings_id, doc_type))
+        c.execute(
+            "DELETE FROM earnings_documents WHERE earnings_id = %s AND doc_type = %s",
+            (earnings_id, doc_type),
+        )
         conn.commit()
         return c.rowcount
     finally:
@@ -936,13 +1052,16 @@ def get_earnings_press_release(ticker: str, earnings_id: int) -> str | None:
     if not e:
         return None
 
-    pr_docs = [d for d in e.get('documents', []) if d['doc_type'] == 'press_release']
+    pr_docs = [d for d in e.get("documents", []) if d["doc_type"] == "press_release"]
     if not pr_docs:
         return None
 
     pr = pr_docs[0]
-    period_range = (f"{e.get('period_start', '?')} to {e.get('period_end', '?')}"
-                    if e.get('period_start') else 'N/A')
+    period_range = (
+        f"{e.get('period_start', '?')} to {e.get('period_end', '?')}"
+        if e.get("period_start")
+        else "N/A"
+    )
     header = (
         f"EARNINGS PRESS RELEASE\n"
         f"Ticker      : {ticker}\n"
@@ -951,7 +1070,7 @@ def get_earnings_press_release(ticker: str, earnings_id: int) -> str | None:
         f"Covers      : {period_range}\n"
         f"{'─' * 60}\n"
     )
-    return header + pr['content']
+    return header + pr["content"]
 
 
 def get_focal_points(ticker):
@@ -971,13 +1090,13 @@ def get_earnings_reaction(earnings_id):
     """Returns the reaction for an earnings event, or None."""
     conn = get_conn(dict_cursor=True)
     c = conn.cursor()
-    c.execute('SELECT * FROM earnings_reactions WHERE earnings_id = %s', (earnings_id,))
+    c.execute("SELECT * FROM earnings_reactions WHERE earnings_id = %s", (earnings_id,))
     row = c.fetchone()
     conn.close()
     if not row:
         return None
     r = dict(row)
-    r['contributing_article_ids'] = json.loads(r['contributing_article_ids'] or '[]')
+    r["contributing_article_ids"] = json.loads(r["contributing_article_ids"] or "[]")
     return r
 
 
@@ -990,13 +1109,15 @@ def get_full_earnings(ticker, report_date=None, earnings_id=None):
     c = conn.cursor()
 
     if earnings_id:
-        c.execute('SELECT * FROM earnings WHERE id = %s', (earnings_id,))
+        c.execute("SELECT * FROM earnings WHERE id = %s", (earnings_id,))
     elif report_date:
-        c.execute('SELECT * FROM earnings WHERE ticker = %s AND report_date = %s',
-                  (ticker, report_date))
+        c.execute(
+            "SELECT * FROM earnings WHERE ticker = %s AND report_date = %s", (ticker, report_date)
+        )
     else:
-        c.execute('SELECT * FROM earnings WHERE ticker = %s ORDER BY report_date DESC LIMIT 1',
-                  (ticker,))
+        c.execute(
+            "SELECT * FROM earnings WHERE ticker = %s ORDER BY report_date DESC LIMIT 1", (ticker,)
+        )
 
     row = c.fetchone()
     conn.close()
@@ -1004,12 +1125,13 @@ def get_full_earnings(ticker, report_date=None, earnings_id=None):
         return None
 
     e = dict(row)
-    e['documents'] = get_earnings_documents(e['id'])
-    e['reaction']  = get_earnings_reaction(e['id'])
+    e["documents"] = get_earnings_documents(e["id"])
+    e["reaction"] = get_earnings_reaction(e["id"])
     return e
 
 
 # ── Ticker colors ─────────────────────────────────────────────────────────────
+
 
 def init_ticker_colors_table() -> None:
     """Create the ticker_colors table if it doesn't exist."""
@@ -1045,7 +1167,8 @@ def set_ticker_color(ticker: str, hex_color: str, source: str = "manual") -> Non
     """
     conn = get_conn()
     c = conn.cursor()
-    c.execute("""
+    c.execute(
+        """
         INSERT INTO ticker_colors (ticker, hex_color, source, updated_at)
         VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
         ON CONFLICT(ticker) DO UPDATE SET
@@ -1056,7 +1179,9 @@ def set_ticker_color(ticker: str, hex_color: str, source: str = "manual") -> Non
             CASE ticker_colors.source WHEN 'manual' THEN 3 WHEN 'brand' THEN 2 ELSE 1 END
             <=
             CASE EXCLUDED.source      WHEN 'manual' THEN 3 WHEN 'brand' THEN 2 ELSE 1 END
-    """, (ticker, hex_color, source))
+    """,
+        (ticker, hex_color, source),
+    )
     conn.commit()
     conn.close()
 
@@ -1094,7 +1219,8 @@ def save_ticker_classification(ticker: str, data: dict) -> None:
     """Upsert classification for a ticker."""
     conn = get_conn()
     c = conn.cursor()
-    c.execute("""
+    c.execute(
+        """
         INSERT INTO ticker_classification
             (ticker, long_name, exchange, gics_sector, gics_industry,
              display_tags, fetched_at)
@@ -1108,7 +1234,9 @@ def save_ticker_classification(ticker: str, data: dict) -> None:
             gics_industry = EXCLUDED.gics_industry,
             display_tags  = EXCLUDED.display_tags,
             fetched_at    = CURRENT_TIMESTAMP
-    """, {"ticker": ticker, **data})
+    """,
+        {"ticker": ticker, **data},
+    )
     conn.commit()
     conn.close()
 
@@ -1125,10 +1253,13 @@ def get_setting(key: str, default: str = None) -> str | None:
 def set_setting(key: str, value: str):
     conn = get_conn()
     c = conn.cursor()
-    c.execute("""
+    c.execute(
+        """
         INSERT INTO app_settings (key, value) VALUES (%s, %s)
         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
-    """, (key, value))
+    """,
+        (key, value),
+    )
     conn.commit()
     conn.close()
 
@@ -1141,7 +1272,7 @@ def inspect_analyses(ticker=None, limit=10):
     conn = get_conn(dict_cursor=True)
     c = conn.cursor()
 
-    query = '''
+    query = """
         SELECT
             ar.ticker,
             a.headline,
@@ -1153,7 +1284,7 @@ def inspect_analyses(ticker=None, limit=10):
             ar.model_name
         FROM analysis_runs ar
         JOIN articles a ON ar.article_id = a.id
-    '''
+    """
 
     params = []
     if ticker:
@@ -1171,28 +1302,30 @@ def inspect_analyses(ticker=None, limit=10):
         print("No analysis records found" + (f" for {ticker}" if ticker else ""))
         return
 
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print(f" INSPECTING RECENT ANALYSES (Showing {len(rows)})")
-    print("="*80)
+    print("=" * 80)
 
     for i, row in enumerate(rows):
-        print(f"\n[{i+1}] TICKER: {row['ticker']} | MODEL: {row['model_name']}")
+        print(f"\n[{i + 1}] TICKER: {row['ticker']} | MODEL: {row['model_name']}")
         print(f"RAW HEADLINE: {row['headline']}")
         print(f"AI IMPACT:   {row['impact_headline']}")
-        print(f"{'-'*30}")
+        print(f"{'-' * 30}")
         print(f"REASONING:   {row['reasoning']}")
         print(f"RELEVANCE:   {row['relevancy_score']}/100")
         print(f"IMPORTANCE:  {row['importance_score']}/100")
-        print(f"{'-'*30}")
+        print(f"{'-' * 30}")
 
-        summary_text = row['ai_summary'] if row['ai_summary'] is not None else ""
+        summary_text = row["ai_summary"] if row["ai_summary"] is not None else ""
 
         if summary_text:
-            summary_snippet = (summary_text[:250] + "...") if len(summary_text) > 250 else summary_text
+            summary_snippet = (
+                (summary_text[:250] + "...") if len(summary_text) > 250 else summary_text
+            )
         else:
             summary_snippet = "[No summary available]"
 
         print(f"AI SUMMARY:  {summary_snippet}")
         print("-" * 80)
 
-    print("="*80 + "\n")
+    print("=" * 80 + "\n")

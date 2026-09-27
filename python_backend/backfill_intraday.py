@@ -15,12 +15,12 @@ import market_data
 import utils
 
 DEFAULT_TICKERS = ["NVDA", "AAPL", "MSFT"]
-MAX_DAYS        = 30
-SLEEP_BETWEEN   = 0.5
+MAX_DAYS = 30
+SLEEP_BETWEEN = 0.5
 
 
 def backfill_ticker(ticker: str, days: int):
-    end   = str(date.today())
+    end = str(date.today())
     start = str(date.today() - timedelta(days=days))
 
     latest = market_data.get_latest_intraday_timestamp(ticker)
@@ -43,7 +43,9 @@ def backfill_ticker(ticker: str, days: int):
 
     rows = alpaca.bars_to_intraday_rows(ticker, bars)
     inserted = market_data.bulk_insert_intraday(rows)
-    print(f"  [{ticker}] Inserted {inserted} minute bars ({rows[0]['timestamp'][:10]} → {rows[-1]['timestamp'][:10]})")
+    print(
+        f"  [{ticker}] Inserted {inserted} minute bars ({rows[0]['timestamp'][:10]} → {rows[-1]['timestamp'][:10]})"
+    )
 
 
 def main():
@@ -55,7 +57,9 @@ def main():
     days = min(args.days, MAX_DAYS)
     market_data.init_db()
 
-    print(f"\nBackfilling intraday for {len(args.tickers)} ticker(s): {args.tickers} ({days} days)\n")
+    print(
+        f"\nBackfilling intraday for {len(args.tickers)} ticker(s): {args.tickers} ({days} days)\n"
+    )
     for ticker in args.tickers:
         try:
             backfill_ticker(ticker, days)

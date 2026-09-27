@@ -1,4 +1,5 @@
 """Runner: sync yesterday's daily OHLCV bars from Alpaca for all active tickers."""
+
 import os
 import sys
 import time

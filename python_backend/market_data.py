@@ -66,6 +66,7 @@ def init_db():
 
 # ── historical_prices ─────────────────────────────────────────────────────────
 
+
 def bulk_insert_prices(rows: list[dict]) -> int:
     """
     Bulk upsert OHLCV rows. Each dict must have:
@@ -77,7 +78,8 @@ def bulk_insert_prices(rows: list[dict]) -> int:
         return 0
     conn = get_conn()
     c = conn.cursor()
-    c.executemany("""
+    c.executemany(
+        """
         INSERT INTO historical_prices
             (ticker, date, open, high, low, close, volume, vwap, trade_count)
         VALUES
@@ -91,7 +93,9 @@ def bulk_insert_prices(rows: list[dict]) -> int:
             volume      = EXCLUDED.volume,
             vwap        = EXCLUDED.vwap,
             trade_count = EXCLUDED.trade_count
-    """, [{**{"vwap": None, "trade_count": None}, **r} for r in rows])
+    """,
+        [{**{"vwap": None, "trade_count": None}, **r} for r in rows],
+    )
     inserted = c.rowcount
     conn.commit()
     conn.close()
@@ -129,6 +133,7 @@ def get_latest_price_date(ticker: str) -> str | None:
 
 # ── intraday_prices ───────────────────────────────────────────────────────────
 
+
 def bulk_insert_intraday(rows: list[dict]) -> int:
     """
     Bulk upsert minute-bar rows. Each dict must have:
@@ -139,7 +144,8 @@ def bulk_insert_intraday(rows: list[dict]) -> int:
         return 0
     conn = get_conn()
     c = conn.cursor()
-    c.executemany("""
+    c.executemany(
+        """
         INSERT INTO intraday_prices
             (ticker, timestamp, open, high, low, close, volume, vwap, trade_count)
         VALUES
@@ -153,7 +159,9 @@ def bulk_insert_intraday(rows: list[dict]) -> int:
             volume      = EXCLUDED.volume,
             vwap        = EXCLUDED.vwap,
             trade_count = EXCLUDED.trade_count
-    """, [{**{"vwap": None, "trade_count": None}, **r} for r in rows])
+    """,
+        [{**{"vwap": None, "trade_count": None}, **r} for r in rows],
+    )
     inserted = c.rowcount
     conn.commit()
     conn.close()
@@ -192,9 +200,9 @@ def status():
     """Print a quick health summary of the market_data tables."""
     conn = get_conn(dict_cursor=True)
     c = conn.cursor()
-    print(f"\n{'='*50}")
+    print(f"\n{'=' * 50}")
     print(" MARKET DATA")
-    print(f"{'='*50}")
+    print(f"{'=' * 50}")
     for table, date_col in [("historical_prices", "date"), ("intraday_prices", "timestamp")]:
         c.execute(f"SELECT COUNT(*) FROM {table}")
         count = c.fetchone()[0]
@@ -205,7 +213,7 @@ def status():
         """)
         for r in c.fetchall():
             print(f"    {r['ticker']}: {r['n']}  ({r['first']} → {r['last']})")
-    print(f"{'='*50}\n")
+    print(f"{'=' * 50}\n")
     conn.close()
 
 

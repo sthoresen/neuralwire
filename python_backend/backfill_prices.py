@@ -16,8 +16,8 @@ import market_data
 import utils
 
 DEFAULT_TICKERS = ["NVDA", "AAPL", "MSFT"]
-LOOKBACK_YEARS  = 5
-SLEEP_BETWEEN   = 1.0
+LOOKBACK_YEARS = 5
+SLEEP_BETWEEN = 1.0
 
 
 def fetch_bars(alpaca_ticker: str, start: str, end: str) -> list[dict]:
@@ -49,8 +49,8 @@ def backfill_ticker(ticker: str, start: str, end: str):
 def main():
     parser = argparse.ArgumentParser(description="Backfill 5-year OHLCV prices from Alpaca")
     parser.add_argument("--tickers", nargs="+", default=DEFAULT_TICKERS)
-    parser.add_argument("--start",   default=str(date.today() - timedelta(days=365 * LOOKBACK_YEARS)))
-    parser.add_argument("--end",     default=str(date.today()))
+    parser.add_argument("--start", default=str(date.today() - timedelta(days=365 * LOOKBACK_YEARS)))
+    parser.add_argument("--end", default=str(date.today()))
     args = parser.parse_args()
 
     market_data.init_db()

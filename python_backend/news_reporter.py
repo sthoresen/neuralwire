@@ -8,9 +8,9 @@ from trafilatura.settings import use_config
 import database
 import utils
 
-ALPHA_VANTAGE_API_KEY=utils.get_env_variable('ALPHA_VANTAGE_API_KEY')
-FINNHUB_API_KEY=utils.get_env_variable('FINNHUB_API_KEY')
-POLYGON_API_KEY=utils.get_env_variable('POLYGON_API_KEY')
+ALPHA_VANTAGE_API_KEY = utils.get_env_variable("ALPHA_VANTAGE_API_KEY")
+FINNHUB_API_KEY = utils.get_env_variable("FINNHUB_API_KEY")
+POLYGON_API_KEY = utils.get_env_variable("POLYGON_API_KEY")
 MAX_WORKERS = 10
 
 # Seconds per fetch attempt. trafilatura retries internally, so worst-case
@@ -31,7 +31,7 @@ API_KEYS = {
 PROVIDERS_TO_USE = [
     #'finnhub',
     #'polygon',
-    'alpha_vantage'
+    "alpha_vantage"
 ]
 
 TICKERS_PER_CYCLE = 2
@@ -50,31 +50,27 @@ def get_next_tickers(all_tickers: list[str]) -> list[str]:
     print(f"  [rotation] index={idx}, selected={selected}")
     return selected
 
+
 def get_alpha_vantage_news(api_key, ticker=None):
     """Fetches from Alpha Vantage and saves directly to DB.
     If the ticker is not given, pull all news. If the ticker is given, search for news related to that ticker.
     """
 
-
     print(f"Fetching Alpha Vantage news for ticker={ticker}...")
-    
+
     url = "https://www.alphavantage.co/query"
-    params = {
-        "function": "NEWS_SENTIMENT",
-        "apikey": api_key,
-        "limit": 1000
-    }
+    params = {"function": "NEWS_SENTIMENT", "apikey": api_key, "limit": 1000}
 
     if ticker:
-        params['tickers'] = ticker
-    
+        params["tickers"] = ticker
+
     new_count = 0
-    
+
     try:
         response = requests.get(url, params=params)
         response.raise_for_status()
         data = response.json()
-        
+
         feed = data.get("feed", [])
         print(f"  -> Found {len(feed)} items in feed.")
 
@@ -83,27 +79,28 @@ def get_alpha_vantage_news(api_key, ticker=None):
             # Note: We map keys to match what database_v2.insert_raw_article expects
             article_payload = {
                 "url": item.get("url"),
-                "title": item.get("title"),          # DB expects 'title'
-                "source": "Alpha Vantage",           # DB expects 'source'
+                "title": item.get("title"),  # DB expects 'title'
+                "source": "Alpha Vantage",  # DB expects 'source'
                 "summary": item.get("summary"),
-                "time_published": utils.parse_datetime(item.get("time_published"))
+                "time_published": utils.parse_datetime(item.get("time_published")),
             }
-            
+
             # 2. Insert into DB
             # This function checks for duplicates automatically based on URL
             article_id = database.insert_raw_article(ticker, article_payload)
-            
+
             if article_id:
                 new_count += 1
-                
+
         print(f"  -> Successfully saved {new_count} NEW articles to DB.")
-        
+
     except Exception as e:
         print(f"  -> Error fetching Alpha Vantage: {e}")
-    
+
 
 def get_finnhub_news():
     pass
+
 
 def get_polygon_news():
     pass
@@ -114,7 +111,6 @@ provider_functions = {
     "polygon": get_polygon_news,
     "alpha_vantage": get_alpha_vantage_news,
 }
-
 
 
 def pull_all_news():
@@ -139,6 +135,7 @@ def pull_all_news():
 
 class ScrapeResult(NamedTuple):
     """Outcome of one scrape. Exactly one of text / error is set."""
+
     text: str | None = None
     error: str | None = None
 

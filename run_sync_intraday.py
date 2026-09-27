@@ -1,4 +1,5 @@
 """Runner: sync intraday (1-min) bars from Alpaca for all active tickers. Intended for Railway cron."""
+
 import os
 import sys
 import time

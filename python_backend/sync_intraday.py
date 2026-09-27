@@ -43,6 +43,7 @@ def sync_ticker_intraday(ticker: str) -> int:
 def prune_old_intraday(days_keep: int = 7):
     """Delete intraday bars older than days_keep calendar days."""
     from db_connection import get_conn
+
     cutoff = str(date.today() - timedelta(days=days_keep))
     conn = get_conn()
     c = conn.cursor()

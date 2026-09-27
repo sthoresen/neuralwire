@@ -23,8 +23,11 @@ import utils
 TTL_DAYS = 90
 
 EXCHANGE_MAP = {
-    "NMS": "NASDAQ", "NGM": "NASDAQ", "NNM": "NASDAQ",
-    "NYQ": "NYSE",   "NYS": "NYSE",
+    "NMS": "NASDAQ",
+    "NGM": "NASDAQ",
+    "NNM": "NASDAQ",
+    "NYQ": "NYSE",
+    "NYS": "NYSE",
     "PCX": "NYSE Arca",
     "ASE": "NYSE American",
     "BTS": "BATS",
@@ -73,11 +76,11 @@ def get_or_fetch(ticker: str) -> dict:
     tags = _generate_tags(ticker, raw) if raw else None
 
     data = {
-        "long_name":     raw.get("long_name", ticker),
-        "exchange":      raw.get("exchange", ""),
-        "gics_sector":   raw.get("gics_sector", ""),
+        "long_name": raw.get("long_name", ticker),
+        "exchange": raw.get("exchange", ""),
+        "gics_sector": raw.get("gics_sector", ""),
         "gics_industry": raw.get("gics_industry", ""),
-        "display_tags":  tags or raw.get("gics_industry", ""),
+        "display_tags": tags or raw.get("gics_industry", ""),
     }
     database.save_ticker_classification(ticker, data)
     return {"ticker": ticker, **data}
@@ -90,6 +93,7 @@ def format_eyebrow(cls: dict) -> str:
 
 
 # ── Internal ──────────────────────────────────────────────────────────────────
+
 
 def _is_fresh(fetched_at) -> bool:
     if not fetched_at:
@@ -104,18 +108,20 @@ def _is_fresh(fetched_at) -> bool:
 
 def _fetch_yfinance(ticker: str) -> dict:
     import yfinance as yf
+
     info = yf.Ticker(utils.to_yfinance_ticker(ticker)).info
     raw_exchange = info.get("exchange", "")
     return {
-        "long_name":     info.get("longName", ticker),
-        "exchange":      EXCHANGE_MAP.get(raw_exchange, raw_exchange),
-        "gics_sector":   info.get("sector", ""),
+        "long_name": info.get("longName", ticker),
+        "exchange": EXCHANGE_MAP.get(raw_exchange, raw_exchange),
+        "gics_sector": info.get("sector", ""),
         "gics_industry": info.get("industry", ""),
     }
 
 
 def _generate_tags(ticker: str, raw: dict) -> str | None:
     from llms import LLMProviderManager
+
     llm = LLMProviderManager()
     prompt = EYEBROW_PROMPT.format(
         ticker=ticker,
@@ -125,9 +131,11 @@ def _generate_tags(ticker: str, raw: dict) -> str | None:
         industry=raw.get("gics_industry", ""),
     )
     try:
-        result, _ = llm.call(prompt, tier="standard", max_tier="premium", reasoning=False, max_tokens=200)
+        result, _ = llm.call(
+            prompt, tier="standard", max_tier="premium", reasoning=False, max_tokens=200
+        )
         if result:
-            return re.sub(r'[\"\'\n]', '', result).strip()
+            return re.sub(r"[\"\'\n]", "", result).strip()
     except Exception as e:
         print(f"[ticker_classification] LLM tag generation failed for {ticker}: {e}")
     return None

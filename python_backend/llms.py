@@ -1,4 +1,4 @@
-#llms.py
+# llms.py
 
 import datetime
 import os
@@ -8,8 +8,8 @@ from openai import OpenAI
 
 import utils
 
-OPENROUTER_KEY = utils.get_env_variable('OPENROUTER_KEY')
-XAI_API_KEY    = utils.get_env_variable('XAI_API_KEY')
+OPENROUTER_KEY = utils.get_env_variable("OPENROUTER_KEY")
+XAI_API_KEY = utils.get_env_variable("XAI_API_KEY")
 
 # Tier escalation order (low → high cost/quality)
 _TIER_ORDER = ["economy", "standard", "premium"]
@@ -21,6 +21,7 @@ def _stream_grok_verbose(chat) -> str:
     citations as they arrive. Returns the full response content string.
     """
     import json
+
     content_parts = []
     is_thinking = True
     last_reasoning_tokens = 0
@@ -35,8 +36,8 @@ def _stream_grok_verbose(chat) -> str:
                 pass
             print(f"\n[x_search] {tool_call.function.name}({args})", flush=True)
 
-        usage = getattr(response, 'usage', None)
-        if usage and getattr(usage, 'reasoning_tokens', 0) != last_reasoning_tokens:
+        usage = getattr(response, "usage", None)
+        if usage and getattr(usage, "reasoning_tokens", 0) != last_reasoning_tokens:
             last_reasoning_tokens = usage.reasoning_tokens
             print(f"\rThinking... ({last_reasoning_tokens} reasoning tokens)", end="", flush=True)
 
@@ -49,13 +50,13 @@ def _stream_grok_verbose(chat) -> str:
             content_parts.append(chunk.content)
 
     if response is not None:
-        citations = getattr(response, 'citations', None)
+        citations = getattr(response, "citations", None)
         if citations:
             print("\n\n=== CITATIONS ===", flush=True)
             for c in citations:
                 print(f"  {c}", flush=True)
 
-        usage = getattr(response, 'usage', None)
+        usage = getattr(response, "usage", None)
         if usage:
             print("\n\n=== USAGE ===", flush=True)
             print(f"  prompt_tokens:    {getattr(usage, 'prompt_tokens', '?')}", flush=True)
@@ -112,8 +113,6 @@ class LLMProviderManager:
                 "is_active": True,
                 "retries": 3,
             },
-
-
             # ── Standard ───────────────────────────────────────────────────────
             # Good quality/cost balance. Default for most analysis and writing.
             {
@@ -136,7 +135,6 @@ class LLMProviderManager:
                 "is_active": True,
                 "retries": 3,
             },
-
             # ── Premium ────────────────────────────────────────────────────────
             # Highest quality. For complex synthesis or explicit override.
             {
@@ -180,15 +178,15 @@ class LLMProviderManager:
                    Silently ignored for providers that don't support it.
                    None = leave the provider's default intact.
         """
-        name = provider['name']
+        name = provider["name"]
         if not provider.get("is_active"):
-            print(f'  [{name}] skipped: not active', flush=True)
+            print(f"  [{name}] skipped: not active", flush=True)
             return None, None
         if not provider.get("api_key") or "YOUR_" in (provider.get("api_key") or ""):
-            print(f'  [{name}] skipped: no api key', flush=True)
+            print(f"  [{name}] skipped: no api key", flush=True)
             return None, None
 
-        client  = OpenAI(base_url=provider['base_url'], api_key=provider['api_key'])
+        client = OpenAI(base_url=provider["base_url"], api_key=provider["api_key"])
         backoff = 2
 
         messages = []
@@ -197,20 +195,22 @@ class LLMProviderManager:
         messages.append({"role": "user", "content": prompt})
 
         kwargs = {
-            "model":      provider['model'],
-            "messages":   messages,
+            "model": provider["model"],
+            "messages": messages,
             "temperature": 0.0,
             "max_tokens": max_tokens,
             "extra_headers": {
                 "HTTP-Referer": os.environ.get("FRONTEND_URL", "http://localhost:5000"),
                 "X-Title": "Financial News Aggregator",
-            } if "openrouter" in provider.get('base_url', '') else {},
+            }
+            if "openrouter" in provider.get("base_url", "")
+            else {},
         }
 
         if reasoning is not None and provider.get("supports_reasoning"):
             kwargs["extra_body"] = {"reasoning": {"enabled": reasoning}}
 
-        retries = provider.get('retries', 1)
+        retries = provider.get("retries", 1)
         last_failure = None
 
         for _ in range(retries):
@@ -243,13 +243,20 @@ class LLMProviderManager:
                 backoff *= 2
                 continue
 
-        print(f'  [{name}] failed after {retries} attempt(s): {last_failure}', flush=True)
+        print(f"  [{name}] failed after {retries} attempt(s): {last_failure}", flush=True)
         return None, None
 
     # ── Public API ─────────────────────────────────────────────────────────────
 
-    def call(self, prompt, tier="standard", max_tier=None, reasoning=None,
-             max_tokens=1000, system_prompt=None):
+    def call(
+        self,
+        prompt,
+        tier="standard",
+        max_tier=None,
+        reasoning=None,
+        max_tokens=1000,
+        system_prompt=None,
+    ):
         """
         Route to providers by tier with optional escalation.
 
@@ -260,13 +267,14 @@ class LLMProviderManager:
         effective_max = max_tier if max_tier is not None else tier
 
         start_idx = _TIER_ORDER.index(tier)
-        end_idx   = _TIER_ORDER.index(effective_max)
+        end_idx = _TIER_ORDER.index(effective_max)
 
-        for current_tier in _TIER_ORDER[start_idx:end_idx + 1]:
+        for current_tier in _TIER_ORDER[start_idx : end_idx + 1]:
             candidates = [p for p in self.providers if p.get("tier") == current_tier]
             for provider in candidates:
                 result, name = self._try_provider(
-                    provider, prompt,
+                    provider,
+                    prompt,
                     system_prompt=system_prompt,
                     reasoning=reasoning,
                     max_tokens=max_tokens,
@@ -275,7 +283,10 @@ class LLMProviderManager:
                     return result, name
 
             if current_tier != _TIER_ORDER[end_idx]:
-                print(f"  [router] All {current_tier} providers failed, escalating to next tier...", flush=True)
+                print(
+                    f"  [router] All {current_tier} providers failed, escalating to next tier...",
+                    flush=True,
+                )
 
         return None, None
 
@@ -299,7 +310,8 @@ class LLMProviderManager:
             }
 
         result, name = self._try_provider(
-            provider, prompt,
+            provider,
+            prompt,
             system_prompt=system_prompt,
             reasoning=reasoning,
             max_tokens=max_tokens,
@@ -324,9 +336,7 @@ class LLMProviderManager:
         Supports advanced X search filtering, timing constraints, and multimodal understanding.
         """
         if not self.xai_config.get("active"):
-            raise RuntimeError(
-                "xAI Direct provider not configured. Add XAI_API_KEY to .env."
-            )
+            raise RuntimeError("xAI Direct provider not configured. Add XAI_API_KEY to .env.")
 
         try:
             from xai_sdk import Client
@@ -339,7 +349,9 @@ class LLMProviderManager:
             raise ValueError("allowed_x_handles and excluded_x_handles cannot be set together.")
 
         now = datetime.datetime.now()
-        full_prompt = f"Today's date and time is {now.strftime('%A, %B %d, %Y at %I:%M %p')}.\n\n{prompt}"
+        full_prompt = (
+            f"Today's date and time is {now.strftime('%A, %B %d, %Y at %I:%M %p')}.\n\n{prompt}"
+        )
 
         search_kwargs = {}
         if allowed_x_handles:
@@ -355,9 +367,9 @@ class LLMProviderManager:
         if enable_video_understanding:
             search_kwargs["enable_video_understanding"] = enable_video_understanding
 
-        client = Client(api_key=self.xai_config['api_key'])
-        chat   = client.chat.create(
-            model=self.xai_config['model'],
+        client = Client(api_key=self.xai_config["api_key"])
+        chat = client.chat.create(
+            model=self.xai_config["model"],
             tools=[x_search(**search_kwargs)],
             include=["verbose_streaming"],
         )
@@ -368,14 +380,14 @@ class LLMProviderManager:
                 content = _stream_grok_verbose(chat)
             else:
                 response = chat.sample()
-                content  = response.content
+                content = response.content
         except Exception as e:
             raise RuntimeError(f"xAI SDK call failed: {e}") from e
 
         if not content:
             raise RuntimeError("xAI SDK returned empty content.")
 
-        return content.strip(), self.xai_config['name']
+        return content.strip(), self.xai_config["name"]
 
 
 # Module-level singleton for callers that import it directly

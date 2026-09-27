@@ -89,8 +89,7 @@ def main():
     existing = get_existing_tickers(conn)
 
     tickers_in_dir = sorted(
-        d for d in os.listdir(AGENTIC_DATA_DIR)
-        if os.path.isdir(os.path.join(AGENTIC_DATA_DIR, d))
+        d for d in os.listdir(AGENTIC_DATA_DIR) if os.path.isdir(os.path.join(AGENTIC_DATA_DIR, d))
     )
 
     new_tickers = [t for t in tickers_in_dir if t not in existing]

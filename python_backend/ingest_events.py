@@ -16,7 +16,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import database
 
-DEFAULT_FILE   = os.path.join(os.path.dirname(__file__), "../nvidia ai data/events/megapasta.txt")
+DEFAULT_FILE = os.path.join(os.path.dirname(__file__), "../nvidia ai data/events/megapasta.txt")
 DEFAULT_TICKER = "NVDA"
 
 # Stored verbatim in the model_name column so bootstrap rows are clearly identifiable.
@@ -58,10 +58,12 @@ def preview(events, n=5):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--file",   default=DEFAULT_FILE,   help="Path to JSON events file")
+    parser.add_argument("--file", default=DEFAULT_FILE, help="Path to JSON events file")
     parser.add_argument("--ticker", default=DEFAULT_TICKER, help="Ticker symbol (default: NVDA)")
-    parser.add_argument("--commit", action="store_true",    help="Actually insert (default is dry run)")
-    parser.add_argument("--force",  action="store_true",    help="Insert even if events already exist")
+    parser.add_argument(
+        "--commit", action="store_true", help="Actually insert (default is dry run)"
+    )
+    parser.add_argument("--force", action="store_true", help="Insert even if events already exist")
     args = parser.parse_args()
 
     print(f"File:   {args.file}")

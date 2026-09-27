@@ -19,10 +19,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import database
 
 DEFAULT_TICKER = "NVDA"
-DEFAULT_LIMIT  = 4   # most recent quarters
+DEFAULT_LIMIT = 4  # most recent quarters
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _period_label(fiscal_year: int, fiscal_quarter: int) -> str:
     return f"Q{fiscal_quarter} FY{fiscal_year}"
@@ -58,8 +59,10 @@ def _already_has_transcript(earnings_id: int) -> bool:
 
 # ── Core fetch + save ─────────────────────────────────────────────────────────
 
-def fetch_and_save(ticker: str, fiscal_year: int, fiscal_quarter: int,
-                   report_date: str, commit: bool) -> bool:
+
+def fetch_and_save(
+    ticker: str, fiscal_year: int, fiscal_quarter: int, report_date: str, commit: bool
+) -> bool:
     """
     Fetches the transcript for one quarter and saves it to the DB.
     Returns True if a new document was saved (or would be in dry-run).
@@ -83,8 +86,9 @@ def fetch_and_save(ticker: str, fiscal_year: int, fiscal_quarter: int,
     # --- Fetch transcript from defeatbeta ---
     try:
         from defeatbeta_api.data.ticker import Ticker
+
         obj = Ticker(ticker).earning_call_transcripts()
-        df  = obj.get_transcript(fiscal_year=fiscal_year, fiscal_quarter=fiscal_quarter)
+        df = obj.get_transcript(fiscal_year=fiscal_year, fiscal_quarter=fiscal_quarter)
     except Exception as e:
         print(f"FETCH ERROR: {e}")
         return False
@@ -116,7 +120,7 @@ def fetch_and_save(ticker: str, fiscal_year: int, fiscal_quarter: int,
         earnings_id=earnings_id,
         doc_type="transcript",
         content=content,
-        quality_score=90,   # structured, line-by-line source
+        quality_score=90,  # structured, line-by-line source
         is_preferred=True,
         source_url=None,
         source_article_id=None,
@@ -132,8 +136,8 @@ def fetch_and_save(ticker: str, fiscal_year: int, fiscal_quarter: int,
 
 # ── Main pipeline ─────────────────────────────────────────────────────────────
 
-def run(ticker: str, limit: int, fiscal_year: int | None,
-        fiscal_quarter: int | None, commit: bool):
+
+def run(ticker: str, limit: int, fiscal_year: int | None, fiscal_quarter: int | None, commit: bool):
 
     print(f"\nTicker : {ticker}")
     print(f"Mode   : {'COMMIT' if commit else 'DRY RUN'}")
@@ -141,6 +145,7 @@ def run(ticker: str, limit: int, fiscal_year: int | None,
     # Fetch transcript metadata list
     try:
         from defeatbeta_api.data.ticker import Ticker
+
         meta_df = Ticker(ticker).earning_call_transcripts().get_transcripts_list()
     except Exception as e:
         print(f"ERROR fetching transcript list: {e}")
@@ -149,8 +154,7 @@ def run(ticker: str, limit: int, fiscal_year: int | None,
     # Filter to a single quarter if specified
     if fiscal_year and fiscal_quarter:
         meta_df = meta_df[
-            (meta_df["fiscal_year"] == fiscal_year) &
-            (meta_df["fiscal_quarter"] == fiscal_quarter)
+            (meta_df["fiscal_year"] == fiscal_year) & (meta_df["fiscal_quarter"] == fiscal_quarter)
         ]
         if meta_df.empty:
             print(f"No transcript found for Q{fiscal_quarter} FY{fiscal_year}")
@@ -184,11 +188,21 @@ def run(ticker: str, limit: int, fiscal_year: int | None,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Ingest earnings transcripts via defeatbeta-api")
-    parser.add_argument("--ticker",          default=DEFAULT_TICKER, help="Ticker symbol (default: NVDA)")
-    parser.add_argument("--limit",           type=int, default=DEFAULT_LIMIT, help="Most recent N quarters (default: 4)")
-    parser.add_argument("--fiscal-year",     type=int, default=None, help="Fetch a single specific fiscal year")
-    parser.add_argument("--fiscal-quarter",  type=int, default=None, choices=[1, 2, 3, 4], help="Fetch a single specific fiscal quarter")
-    parser.add_argument("--commit",          action="store_true", help="Write to DB (default is dry run)")
+    parser.add_argument("--ticker", default=DEFAULT_TICKER, help="Ticker symbol (default: NVDA)")
+    parser.add_argument(
+        "--limit", type=int, default=DEFAULT_LIMIT, help="Most recent N quarters (default: 4)"
+    )
+    parser.add_argument(
+        "--fiscal-year", type=int, default=None, help="Fetch a single specific fiscal year"
+    )
+    parser.add_argument(
+        "--fiscal-quarter",
+        type=int,
+        default=None,
+        choices=[1, 2, 3, 4],
+        help="Fetch a single specific fiscal quarter",
+    )
+    parser.add_argument("--commit", action="store_true", help="Write to DB (default is dry run)")
     args = parser.parse_args()
 
     if bool(args.fiscal_year) != bool(args.fiscal_quarter):

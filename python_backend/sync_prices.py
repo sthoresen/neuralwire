@@ -18,12 +18,12 @@ import market_data
 import utils
 
 DEFAULT_TICKERS = ["NVDA", "AAPL", "MSFT"]
-SLEEP_BETWEEN   = 0.5
+SLEEP_BETWEEN = 0.5
 
 
 def sync_ticker(ticker: str):
     latest = market_data.get_latest_price_date(ticker)
-    end    = str(date.today())
+    end = str(date.today())
 
     if latest is None:
         print(f"  [{ticker}] No data — run backfill_prices.py first.")
