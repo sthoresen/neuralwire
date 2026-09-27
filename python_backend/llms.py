@@ -3,6 +3,7 @@
 import datetime
 import os
 import time
+from typing import Any, Literal
 
 from openai import OpenAI
 
@@ -11,8 +12,13 @@ import utils
 OPENROUTER_KEY = utils.get_env_variable("OPENROUTER_KEY")
 XAI_API_KEY = utils.get_env_variable("XAI_API_KEY")
 
+Tier = Literal["economy", "standard", "premium"]
+
+# (text, model_name) on success, (None, None) when every provider failed.
+LLMReply = tuple[str, str] | tuple[None, None]
+
 # Tier escalation order (low → high cost/quality)
-_TIER_ORDER = ["economy", "standard", "premium"]
+_TIER_ORDER: list[Tier] = ["economy", "standard", "premium"]
 
 
 def _stream_grok_verbose(chat) -> str:
@@ -68,8 +74,8 @@ def _stream_grok_verbose(chat) -> str:
 
 
 class LLMProviderManager:
-    def __init__(self):
-        self.providers = [
+    def __init__(self) -> None:
+        self.providers: list[dict[str, Any]] = [
             # ── Economy ────────────────────────────────────────────────────────
             # Cheap, fast. For high-volume or low-stakes tasks (article triage,
             # color lookup, tag generation, event scan pass 1).
@@ -170,7 +176,14 @@ class LLMProviderManager:
 
     # ── Internal ───────────────────────────────────────────────────────────────
 
-    def _try_provider(self, provider, prompt, system_prompt=None, reasoning=None, max_tokens=1000):
+    def _try_provider(
+        self,
+        provider: dict[str, Any],
+        prompt: str,
+        system_prompt: str | None = None,
+        reasoning: bool | None = None,
+        max_tokens: int = 1000,
+    ) -> LLMReply:
         """
         Attempt a single provider. Returns (text, name) or (None, None).
 
@@ -250,13 +263,13 @@ class LLMProviderManager:
 
     def call(
         self,
-        prompt,
-        tier="standard",
-        max_tier=None,
-        reasoning=None,
-        max_tokens=1000,
-        system_prompt=None,
-    ):
+        prompt: str,
+        tier: Tier = "standard",
+        max_tier: Tier | None = None,
+        reasoning: bool | None = None,
+        max_tokens: int = 1000,
+        system_prompt: str | None = None,
+    ) -> LLMReply:
         """
         Route to providers by tier with optional escalation.
 
@@ -290,7 +303,14 @@ class LLMProviderManager:
 
         return None, None
 
-    def call_model(self, model_id, prompt, reasoning=None, max_tokens=1000, system_prompt=None):
+    def call_model(
+        self,
+        model_id: str,
+        prompt: str,
+        reasoning: bool | None = None,
+        max_tokens: int = 1000,
+        system_prompt: str | None = None,
+    ) -> tuple[str, str]:
         """
         Call a specific model by its ID, bypassing tier routing.
         If the model is in the configured provider list, uses that entry.
@@ -316,21 +336,21 @@ class LLMProviderManager:
             reasoning=reasoning,
             max_tokens=max_tokens,
         )
-        if result is None:
+        if result is None or name is None:
             raise RuntimeError(f"call_model: '{model_id}' failed to produce a response.")
         return result, name
 
     def call_grok_with_search(
         self,
-        prompt,
-        print_reasoning=False,
-        allowed_x_handles=None,
-        excluded_x_handles=None,
-        from_date=None,
-        to_date=None,
-        enable_image_understanding=False,
-        enable_video_understanding=False,
-    ):
+        prompt: str,
+        print_reasoning: bool = False,
+        allowed_x_handles: list[str] | None = None,
+        excluded_x_handles: list[str] | None = None,
+        from_date: datetime.datetime | None = None,
+        to_date: datetime.datetime | None = None,
+        enable_image_understanding: bool = False,
+        enable_video_understanding: bool = False,
+    ) -> tuple[str, str]:
         """
         Calls Grok 4.3 with x_search enabled using the xAI SDK.
         Supports advanced X search filtering, timing constraints, and multimodal understanding.

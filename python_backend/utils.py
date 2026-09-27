@@ -2,13 +2,14 @@ import json
 import os
 import re
 from datetime import datetime
+from typing import Any
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
 
-def parse_datetime(date_string):
+def parse_datetime(date_string: str | int | None) -> datetime | None:
     """Attempts to parse various common date formats from APIs."""
     if not date_string:
         return None
@@ -37,7 +38,7 @@ def parse_datetime(date_string):
     return None
 
 
-def format_article(article):
+def format_article(article: dict[str, Any]) -> None:
     """Helper function to print article details in a readable format."""
     headline = article.get("headline", "N/A")
     provider = article.get("provider", "N/A")
@@ -55,7 +56,7 @@ def format_article(article):
     print(f"Summary: {summary}\n")
 
 
-def get_env_variable(name):
+def get_env_variable(name: str) -> str:
     """Retrieve an environment variable and show a user-friendly error if it's not found."""
     try:
         return os.environ[name]
@@ -66,7 +67,7 @@ def get_env_variable(name):
         raise OSError(error_message) from None
 
 
-def clean_json_response(response_text):
+def clean_json_response(response_text: str | None) -> list[Any]:
     """
     Robust cleaning that extracts JSON structure from mixed text.
     """

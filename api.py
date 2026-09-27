@@ -108,7 +108,7 @@ def _intraday_is_stale(ticker: str) -> bool:
     return age_seconds > 120
 
 
-def _refresh_intraday(db_ticker: str):
+def _refresh_intraday(db_ticker: str) -> None:
     """Background task: fetch latest minute bars from Alpaca and upsert into DB."""
     try:
         inserted = sync_intraday.sync_ticker_intraday(db_ticker)
