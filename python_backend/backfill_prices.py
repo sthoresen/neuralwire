@@ -9,7 +9,7 @@ Usage:
 
 import argparse
 import time
-from datetime import date, timedelta, datetime
+from datetime import date, datetime, timedelta
 
 import alpaca
 import market_data

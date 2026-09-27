@@ -1,10 +1,10 @@
 #llms.py
 
+import datetime
 import os
+import time
 
 from openai import OpenAI
-import time
-import datetime
 
 import utils
 
@@ -41,7 +41,7 @@ def _stream_grok_verbose(chat) -> str:
             print(f"\rThinking... ({last_reasoning_tokens} reasoning tokens)", end="", flush=True)
 
         if chunk.content and is_thinking:
-            print(f"\n\n=== RESPONSE ===", flush=True)
+            print("\n\n=== RESPONSE ===", flush=True)
             is_thinking = False
 
         if chunk.content:
@@ -51,13 +51,13 @@ def _stream_grok_verbose(chat) -> str:
     if response is not None:
         citations = getattr(response, 'citations', None)
         if citations:
-            print(f"\n\n=== CITATIONS ===", flush=True)
+            print("\n\n=== CITATIONS ===", flush=True)
             for c in citations:
                 print(f"  {c}", flush=True)
 
         usage = getattr(response, 'usage', None)
         if usage:
-            print(f"\n\n=== USAGE ===", flush=True)
+            print("\n\n=== USAGE ===", flush=True)
             print(f"  prompt_tokens:    {getattr(usage, 'prompt_tokens', '?')}", flush=True)
             print(f"  completion_tokens:{getattr(usage, 'completion_tokens', '?')}", flush=True)
             print(f"  reasoning_tokens: {getattr(usage, 'reasoning_tokens', '?')}", flush=True)
@@ -213,7 +213,7 @@ class LLMProviderManager:
         retries = provider.get('retries', 1)
         last_failure = None
 
-        for attempt in range(retries):
+        for _ in range(retries):
             try:
                 completion = client.chat.completions.create(**kwargs)
                 if not completion.choices:
@@ -332,8 +332,8 @@ class LLMProviderManager:
             from xai_sdk import Client
             from xai_sdk.chat import user as xai_user
             from xai_sdk.tools import x_search
-        except ImportError:
-            raise RuntimeError("xai-sdk is not installed. Run: pip install xai-sdk")
+        except ImportError as e:
+            raise RuntimeError("xai-sdk is not installed. Run: pip install xai-sdk") from e
 
         if allowed_x_handles and excluded_x_handles:
             raise ValueError("allowed_x_handles and excluded_x_handles cannot be set together.")
@@ -370,7 +370,7 @@ class LLMProviderManager:
                 response = chat.sample()
                 content  = response.content
         except Exception as e:
-            raise RuntimeError(f"xAI SDK call failed: {e}")
+            raise RuntimeError(f"xAI SDK call failed: {e}") from e
 
         if not content:
             raise RuntimeError("xAI SDK returned empty content.")

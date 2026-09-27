@@ -8,6 +8,7 @@ Docs: https://docs.alpaca.markets/reference/stockbars
 """
 
 import requests
+
 import utils
 
 _BASE = "https://data.alpaca.markets/v2"

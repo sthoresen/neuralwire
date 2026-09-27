@@ -5,7 +5,8 @@ Resumes from the last stored timestamp — safe to run multiple times.
 Used by run_sync_intraday.py (scheduled cron) and api.py (on-demand refresh).
 """
 
-from datetime import date, timedelta, datetime as dt
+from datetime import date, timedelta
+from datetime import datetime as dt
 
 import alpaca
 import market_data

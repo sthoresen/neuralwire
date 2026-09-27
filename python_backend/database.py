@@ -421,7 +421,7 @@ def visualize_db():
     s_s = scrape_stats.get('success', 0)
     s_f = scrape_stats.get('failed', 0)
 
-    print(f"\n[SCRAPING STAGE]")
+    print("\n[SCRAPING STAGE]")
     print(f"{'  - Scraped Successfully:':<30} {s_s}")
     print(f"{'  - Scraping Failed:':<30} {s_f}")
     print(f"{'  - Scraping Pending:':<30} {s_p}")
@@ -433,7 +433,7 @@ def visualize_db():
     a_s = analysis_stats.get('success', 0)
     a_f = analysis_stats.get('failed', 0)
 
-    print(f"\n[AI ANALYSIS STAGE]")
+    print("\n[AI ANALYSIS STAGE]")
     print(f"{'  - Analyzed Successfully:':<30} {a_s}")
     print(f"{'  - Analysis Failed:':<30} {a_f}")
     print(f"{'  - Analysis Pending:':<30} {a_p}")
@@ -450,7 +450,7 @@ def visualize_db():
     ''')
     bottleneck_count = c.fetchone()[0]
 
-    print(f"\n[PIPELINE INSIGHTS]")
+    print("\n[PIPELINE INSIGHTS]")
     print(f"  - Analyzed via API summary only (Scrape failed): {fallback_count}")
     print(f"  - Scraped successfully but awaiting AI:        {bottleneck_count}")
 
@@ -1168,7 +1168,7 @@ def inspect_analyses(ticker=None, limit=10):
     conn.close()
 
     if not rows:
-        print(f"No analysis records found" + (f" for {ticker}" if ticker else ""))
+        print("No analysis records found" + (f" for {ticker}" if ticker else ""))
         return
 
     print("\n" + "="*80)

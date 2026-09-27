@@ -5,9 +5,10 @@ Runs as a permanent Railway service alongside the web service.
 Each job is launched as a subprocess so jobs are fully isolated from
 each other and from this process.
 """
+import os
 import subprocess
 import sys
-import os
+
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 

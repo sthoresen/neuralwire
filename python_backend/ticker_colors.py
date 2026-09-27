@@ -16,8 +16,9 @@ Public API:
   hex_to_rgba(hex, alpha)     — CSS rgba() string
 """
 
-import re
 import colorsys
+import re
+
 import database
 
 # Known brand / product colors for popular tickers.
@@ -124,12 +125,10 @@ def darken_hex(hex_color: str, amount: int = 12) -> str:
     """
     h = hex_color.lstrip("#")
     r, g, b   = [int(h[i:i+2], 16) / 255 for i in (0, 2, 4)]
-    hue, l, s = colorsys.rgb_to_hls(r, g, b)   # colorsys uses H,L,S order
-    l = max(0.0, l - amount / 100)
-    r2, g2, b2 = colorsys.hls_to_rgb(hue, l, s)
-    return "#{:02x}{:02x}{:02x}".format(
-        int(r2 * 255 + 0.5), int(g2 * 255 + 0.5), int(b2 * 255 + 0.5)
-    )
+    hue, lightness, s = colorsys.rgb_to_hls(r, g, b)   # colorsys uses H,L,S order
+    lightness = max(0.0, lightness - amount / 100)
+    r2, g2, b2 = colorsys.hls_to_rgb(hue, lightness, s)
+    return f"#{int(r2 * 255 + 0.5):02x}{int(g2 * 255 + 0.5):02x}{int(b2 * 255 + 0.5):02x}"
 
 
 def hex_to_rgba(hex_color: str, alpha: float) -> str:

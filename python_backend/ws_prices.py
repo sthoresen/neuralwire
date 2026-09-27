@@ -18,7 +18,6 @@ Feed: wss://stream.data.alpaca.markets/v2/iex (free tier)
 """
 
 import argparse
-import asyncio
 from datetime import datetime
 
 from alpaca_trade_api.stream import Stream

@@ -4,9 +4,9 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "python_backend"))
 
+import analysis
 import database
 import ingest_earnings
-import analysis
 
 LIMIT = 4  # most recent quarters per ticker
 

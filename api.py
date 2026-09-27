@@ -4,18 +4,18 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "python_backend"))
 
-from db_connection import get_conn  # noqa: E402 — must come after sys.path.insert
+from datetime import UTC, datetime
 
-from fastapi import FastAPI, HTTPException, Query, BackgroundTasks
+from fastapi import BackgroundTasks, FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
-from datetime import datetime, timezone
 
 import database
 import market_data
 import sync_intraday
-import ticker_colors as tc
 import ticker_classification as tclass
+import ticker_colors as tc
 import utils
+from db_connection import get_conn  # noqa: E402 — must come after sys.path.insert
 
 # ── Init ───────────────────────────────────────────────────────────────────
 database.init_db()
@@ -88,7 +88,7 @@ def ticker_prices(ticker: str):
 
 def _market_is_open() -> bool:
     """True if NYSE is currently open (Mon–Fri 13:30–21:00 UTC, DST-agnostic)."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if now.weekday() >= 5:
         return False
     minutes = now.hour * 60 + now.minute
@@ -100,8 +100,8 @@ def _intraday_is_stale(ticker: str) -> bool:
     latest = market_data.get_latest_intraday_timestamp(ticker)
     if not latest:
         return True
-    latest_dt = datetime.fromisoformat(latest.replace(" ", "T")).replace(tzinfo=timezone.utc)
-    age_seconds = (datetime.now(timezone.utc) - latest_dt).total_seconds()
+    latest_dt = datetime.fromisoformat(latest.replace(" ", "T")).replace(tzinfo=UTC)
+    age_seconds = (datetime.now(UTC) - latest_dt).total_seconds()
     return age_seconds > 120
 
 
@@ -134,7 +134,7 @@ def ticker_articles(
 ):
     """Return recent news articles with AI analysis scores."""
     ticker = utils.to_db_ticker(ticker.upper())
-    conn = get_conn()
+    conn = get_conn(dict_cursor=True)
     c = conn.cursor()
     c.execute("""
         SELECT ar.impact_headline, a.headline, a.url, a.published_at, a.provider,
@@ -147,9 +147,7 @@ def ticker_articles(
     """, (ticker, lookback_days, limit))
     rows = c.fetchall()
     conn.close()
-    cols = ["impact_headline", "headline", "url", "published_at", "provider",
-            "ai_summary", "importance_score", "relevancy_score", "breaking_news_score"]
-    return {"ticker": utils.to_display_ticker(ticker), "articles": [dict(zip(cols, r)) for r in rows]}
+    return {"ticker": utils.to_display_ticker(ticker), "articles": [dict(r) for r in rows]}
 
 
 @app.get("/ticker/{ticker}/coverage")
@@ -162,7 +160,7 @@ def ticker_coverage(
 ):
     """Return filtered articles for the Coverage page."""
     ticker = utils.to_db_ticker(ticker.upper())
-    conn = get_conn()
+    conn = get_conn(dict_cursor=True)
     c = conn.cursor()
     c.execute("""
         SELECT ar.impact_headline, a.headline, a.url, a.published_at, a.provider,
@@ -179,13 +177,11 @@ def ticker_coverage(
     """, (ticker, min_relevance, min_breaking, min_importance, limit))
     rows = c.fetchall()
     conn.close()
-    cols = ["impact_headline", "headline", "url", "published_at", "provider",
-            "ai_summary", "importance_score", "relevancy_score", "breaking_news_score", "ticker"]
     # Deduplicate by URL
     seen: set[str] = set()
     articles = []
     for r in rows:
-        d = dict(zip(cols, r))
+        d = dict(r)
         if d["url"] not in seen:
             seen.add(d["url"])
             articles.append(d)

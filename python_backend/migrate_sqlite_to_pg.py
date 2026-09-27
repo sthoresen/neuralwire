@@ -3,7 +3,9 @@ One-shot migration: copies all data from the two SQLite databases into PostgreSQ
 Safe to run again — skips tables that already have data.
 """
 import sqlite3
+
 import psycopg2.extras
+
 from db_connection import get_conn
 
 FINANCIAL_DB = "financial_news_v2u.db"

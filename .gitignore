@@ -31,7 +31,7 @@ New folder/
 *.log
 
 # ── Scratch / temp files ──────────────────────────────────────────────────────
-python_backend/temp_*.txt
+python_backend/*.txt
 
 # ── One-off scripts ───────────────────────────────────────────────────────────
 python_backend/test_db_connection.py

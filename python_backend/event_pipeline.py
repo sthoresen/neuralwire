@@ -30,7 +30,6 @@ import llms
 import prompts
 import utils
 
-
 # ── Formatting helpers ────────────────────────────────────────────────────────
 
 def _format_existing_short(events):

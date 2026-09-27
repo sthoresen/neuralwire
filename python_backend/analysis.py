@@ -3,11 +3,12 @@
 import re
 import time
 from dataclasses import dataclass, field
+from datetime import UTC
 
-import news_reporter
 import database
-import prompts
 import llms
+import news_reporter
+import prompts
 import utils
 from db_connection import get_conn
 
@@ -474,7 +475,7 @@ def _run_pre_filter(articles: list[dict], stats: RunStats = None) -> list[dict]:
     Stage 2: cheap LLM call on headline + api_summary.
     Returns the articles that should proceed to full analysis.
     """
-    keep, regex_skip, llm_skip = [], [], []
+    keep, regex_skip = [], []
 
     for article in articles:
         headline = article.get("headline") or ""
@@ -631,18 +632,16 @@ def run_analysis_pipeline(articles: list[dict], stats: RunStats = None):
         print(f"--- Scraping {len(articles_to_scrape)} articles ---")
         if stats is not None:
             stats.scrape_attempted = len(articles_to_scrape)
-        text_map = news_reporter.parallel_fetch_texts(articles_to_scrape)
+        results = news_reporter.parallel_fetch_texts(articles_to_scrape)
 
-        for i, article in enumerate(articles_to_scrape):
-            full_text = text_map.get(i)
-
-            if full_text:
-                article['full_text'] = full_text
-                database.mark_scrape_success_and_save(article['id'], full_text)
+        for article, result in zip(articles_to_scrape, results, strict=True):
+            if result.text:
+                article['full_text'] = result.text
+                database.mark_scrape_success_and_save(article['id'], result.text)
                 if stats is not None:
                     stats.scrape_success += 1
             else:
-                database.mark_scrape_failed(article['id'], "Scraper returned empty")
+                database.mark_scrape_failed(article['id'], result.error)
                 if stats is not None:
                     stats.scrape_failed += 1
 
@@ -716,14 +715,14 @@ def run_analysis_pipeline(articles: list[dict], stats: RunStats = None):
 
 def _artefact_age_days(ticker: str, artefact_type: str):
     """Returns age of the most recent artefact in days, or None if it doesn't exist."""
-    from datetime import datetime, timezone
+    from datetime import datetime
     artefact = database.get_ticker_artefact(ticker, artefact_type)
     if not artefact or not artefact.get('generated_at'):
         return None
     generated_at = artefact['generated_at']
     if generated_at.tzinfo is None:
-        generated_at = generated_at.replace(tzinfo=timezone.utc)
-    return (datetime.now(timezone.utc) - generated_at).total_seconds() / 86400
+        generated_at = generated_at.replace(tzinfo=UTC)
+    return (datetime.now(UTC) - generated_at).total_seconds() / 86400
 
 
 def refresh_ticker_artefacts(ticker: str, max_age_days: int = 7, force: bool = False):

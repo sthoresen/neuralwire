@@ -1,13 +1,12 @@
+from concurrent.futures import ThreadPoolExecutor
+from typing import NamedTuple
+
 import requests
-from datetime import datetime
 import trafilatura
 from trafilatura.settings import use_config
-from concurrent.futures import ThreadPoolExecutor
 
 import database
 import utils
-from db_connection import get_conn
-
 
 ALPHA_VANTAGE_API_KEY=utils.get_env_variable('ALPHA_VANTAGE_API_KEY')
 FINNHUB_API_KEY=utils.get_env_variable('FINNHUB_API_KEY')
@@ -138,36 +137,56 @@ def pull_all_news():
     print("\n--- Done. Provider news fetching loop completed")
 
 
-def fetch_single_url(article_data):
-    """Helper for the thread pool. Returns (index, text)."""
-    idx = article_data['index']
-    url = article_data['url']
-    
-    if not url or url == "Unavailable":
-        return idx, None
-        
-    try:
-        downloaded = trafilatura.fetch_url(url, config=_TRAFILATURA_CFG)
-        if downloaded:
-            text = trafilatura.extract(downloaded)
-            return idx, text
-    except:
-        pass
-    return idx, None
+class ScrapeResult(NamedTuple):
+    """Outcome of one scrape. Exactly one of text / error is set."""
+    text: str | None = None
+    error: str | None = None
 
-def parallel_fetch_texts(articles):
+
+def fetch_single_url(url: str | None) -> ScrapeResult:
+    """
+    Download and extract one article. Never raises: a failed scrape is an
+    expected outcome (~20% of URLs), so the reason is returned as data and
+    ends up in articles.scrape_error.
+    """
+    if not url or url == "Unavailable":
+        return ScrapeResult(error="no url")
+
+    try:
+        # fetch_response rather than fetch_url: fetch_url collapses every
+        # download failure to None, fetch_response keeps the HTTP status.
+        response = trafilatura.fetch_response(url, decode=True, config=_TRAFILATURA_CFG)
+        if response is None:
+            return ScrapeResult(error="no response (timeout or connection error)")
+        if response.status != 200:
+            return ScrapeResult(error=f"HTTP {response.status}")
+        if not response.html:
+            return ScrapeResult(error="empty response body")
+
+        text = trafilatura.extract(response.html)
+        if not text:
+            # Page loaded but held no article: paywall, cookie wall, JS-rendered.
+            return ScrapeResult(error="no extractable text")
+        return ScrapeResult(text=text)
+
+    except Exception as e:
+        return ScrapeResult(error=f"{type(e).__name__}: {e}"[:300])
+
+
+def parallel_fetch_texts(articles: list[dict]) -> list[ScrapeResult]:
     """
     Fetches all article texts in parallel using threads.
-    Returns a dict mapping {index: text}
+    Returns one ScrapeResult per article, in the same order as `articles`.
     """
     print(f"  > Fetching {len(articles)} URLs in parallel...")
-    
-    tasks = [{'index': i, 'url': a.get('url')} for i, a in enumerate(articles)]
-    results = {}
-    
+
+    urls = [a.get("url") for a in articles]
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        future_results = executor.map(fetch_single_url, tasks)
-        for idx, text in future_results:
-            results[idx] = text
-            
+        # executor.map yields results in input order, so no index bookkeeping is needed.
+        results = list(executor.map(fetch_single_url, urls))
+
+    for url, result in zip(urls, results, strict=True):
+        if result.error:
+            print(f"  -> scrape failed ({result.error}): {url}")
+
     return results

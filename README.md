@@ -105,16 +105,20 @@ flowchart LR
 
 ## Local development
 
-```bash
-# Frontend
-cd frontend
-npm install
-npm run dev            # http://localhost:3000
+Requires Docker and Node. A Postgres 16 container matching production runs on port 5433, seeded from a database dump on first start.
 
-# Backend (FastAPI)
+```bash
 pip install -r requirements.txt
-uvicorn api:app --reload --port 8000
+cd frontend && npm install
+
+make            # list available commands
+make db         # start the local database
+make api        # FastAPI backend on :8000
+make frontend   # Next.js dev server on :3000
+make db-reset   # wipe and re-seed the database
 ```
+
+With `DATABASE_URL` unset the backend connects to the local container; set it to target a deployed database instead.
 
 Backend jobs are driven by small `run_*.py` entrypoints (`run_fetch.py`, `run_analysis.py`, `run_events.py`, `run_earnings.py`, `run_sync_daily_prices.py`, …), wired to Railway cron/worker services. Configuration is via environment variables (`DATABASE_URL`, `OPENROUTER_KEY`, `XAI_API_KEY`, `ALPHA_VANTAGE_API_KEY`, `ALPACA_KEY`, `ALPACA_SECRET`). In local dev, API calls are proxied through `/api` ([`next.config.ts`](frontend/next.config.ts)) so the browser stays same-origin.
 

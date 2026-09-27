@@ -4,8 +4,8 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "python_backend"))
 
-import database
 import analysis
+import database
 
 MAX_AGE_DAYS = 7
 

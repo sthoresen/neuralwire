@@ -1,7 +1,8 @@
-from datetime import datetime
-import os
 import json
+import os
 import re
+from datetime import datetime
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -57,13 +58,14 @@ def get_env_variable(name):
         return os.environ[name]
     except KeyError:
         error_message = f"Required environment variable '{name}' not set. Please ensure it is defined in .env"
-        raise EnvironmentError(error_message)
-    
+        raise OSError(error_message) from None
+
 def clean_json_response(response_text):
     """
     Robust cleaning that extracts JSON structure from mixed text.
     """
-    if not response_text: return []
+    if not response_text:
+        return []
     
     # 1. Try to find content between the first [ and the last ]
     try:

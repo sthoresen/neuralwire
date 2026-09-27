@@ -7,7 +7,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "python_backend"))
 import database
 import event_pipeline
 
-
 if __name__ == "__main__":
     tickers = database.get_active_tickers()
     print(f"=== run_events: {len(tickers)} ticker(s): {tickers} ===")

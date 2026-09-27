@@ -24,7 +24,7 @@ BOOTSTRAP_MODEL = "claude-agentic-v1 [bootstrap]"
 
 
 def load_and_validate(filepath):
-    with open(filepath, "r", encoding="utf-8") as f:
+    with open(filepath, encoding="utf-8") as f:
         data = json.load(f)
 
     if not isinstance(data, list):
@@ -50,7 +50,7 @@ def preview(events, n=5):
     print(f"\nFirst {n} events:")
     for ev in events[:n]:
         print(f"  [{ev.get('event_date_label', '?')}] {ev.get('title')}")
-    print(f"  ...")
+    print("  ...")
     print(f"\nLast {n} events:")
     for ev in events[-n:]:
         print(f"  [{ev.get('event_date_label', '?')}] {ev.get('title')}")
