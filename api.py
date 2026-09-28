@@ -60,6 +60,16 @@ def _available_tickers() -> list[str]:
 # ── Endpoints ──────────────────────────────────────────────────────────────
 
 
+@app.get("/health")
+def health() -> dict[str, str]:
+    """
+    Deploy gate for Railway: a new version only takes traffic once this answers.
+    It needs no checks of its own. The app answers only after lifespan startup
+    (imports, DB connection, table setup) has succeeded, so a 200 already proves that.
+    """
+    return {"status": "ok"}
+
+
 @app.get("/tickers")
 def list_tickers():
     """Return all tickers that have a header_description artefact."""

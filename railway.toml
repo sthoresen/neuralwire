@@ -11,6 +11,9 @@
 #  web            →  uvicorn api:app --host 0.0.0.0 --port $PORT   (see Procfile)
 #                    Always on. Serves the FastAPI read API to the
 #                    Next.js frontend on Vercel.
+#                    Healthcheck path /health, timeout 60 s (dashboard,
+#                    web only: the workers serve no HTTP, so it must NOT
+#                    go in this shared file or their deploys would fail).
 #
 #  neuralwire     →  python scheduler.py
 #                    Always on. APScheduler process that owns every

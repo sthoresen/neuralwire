@@ -73,6 +73,15 @@ def test_startup_initialises_database(monkeypatch):
     ]
 
 
+def test_health_returns_ok_without_touching_the_db():
+    # Railway waits for this before switching traffic to a new deploy, so if it
+    # breaks, every web deploy fails. It must also never need the database.
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
 # ── Ticker mapping ───────────────────────────────────────────────────────────
 
 
