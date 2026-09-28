@@ -107,20 +107,22 @@ flowchart LR
 
 ## Local development
 
-Requires Docker and Node. A Postgres 16 container matching production runs on port 5433, seeded from a database dump on first start.
+Requires only Docker. One command starts Postgres (seeded with demo data for NVDA, AMD and TSLA), the API and the frontend, all with live reload:
 
 ```bash
-pip install -r requirements.txt
-cd frontend && npm install
-
-make            # list available commands
-make db         # start the local database
-make api        # FastAPI backend on :8000
-make frontend   # Next.js dev server on :3000
-make db-reset   # wipe and re-seed the database
+make up         # or: docker compose up --build
 ```
 
-With `DATABASE_URL` unset the backend connects to the local container; set it to target a deployed database instead.
+Then open http://localhost:3000, or http://localhost:8000/docs for the interactive API docs. Nothing touches production: the stack runs against its own database.
+
+```bash
+make            # list all commands
+make reset      # delete the local database and start again from the demo seed
+make db-shell   # psql on the local database
+make test       # run the test suite (needs `pip install -r requirements-dev.txt`)
+```
+
+Workers aren't started by default, since they call paid APIs. With keys in `python_backend/.env`, run one against the local database with `docker compose run --rm api python run_analysis.py`. The demo seed is a small read-only sample of production, refreshed with `make seed` (see [`db/pull_demo_seed.sh`](db/pull_demo_seed.sh)).
 
 Backend jobs are driven by small `run_*.py` entrypoints (`run_fetch.py`, `run_analysis.py`, `run_events.py`, `run_earnings.py`, `run_sync_daily_prices.py`, …), wired to Railway cron/worker services. Configuration is via environment variables (`DATABASE_URL`, `OPENROUTER_KEY`, `XAI_API_KEY`, `ALPHA_VANTAGE_API_KEY`, `ALPACA_KEY`, `ALPACA_SECRET`). In local dev, API calls are proxied through `/api` ([`next.config.ts`](frontend/next.config.ts)) so the browser stays same-origin.
 

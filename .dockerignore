@@ -1,0 +1,24 @@
+# Keep the backend image small and free of secrets and local data.
+**/.env
+**/.env.*
+**/__pycache__
+**/*.py[cod]
+.git
+.github
+.vscode
+.claude
+.ruff_cache
+.pytest_cache
+_archive
+agentic_data
+nvidia ai data
+frontend
+db
+docs
+tests
+**/*.log
+**/*.sql
+**/*.db
+**/*.db.bak
+**/*.ipynb
+python_backend/*.txt

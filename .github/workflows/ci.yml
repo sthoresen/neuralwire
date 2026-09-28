@@ -30,3 +30,26 @@ jobs:
 
       - name: Test
         run: pytest
+
+  docker:
+    name: Docker stack
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and start db + API + frontend
+        run: docker compose up --build -d --wait
+
+      - name: Smoke test
+        run: |
+          curl -fsS localhost:8000/health
+          curl -fsS localhost:3000/api/tickers | grep -q NVDA
+          curl -fsS -o /dev/null localhost:3000/NVDA
+
+      - name: Show logs
+        if: failure()
+        run: docker compose logs
+
+      - name: Stop
+        if: always()
+        run: docker compose down -v

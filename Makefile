@@ -1,42 +1,35 @@
-COMPOSE := docker-compose
-PG      := neuralwire-pg
-
 .DEFAULT_GOAL := help
-.PHONY: help db db-stop db-reset db-shell db-status api worker frontend
+.PHONY: help up down reset logs db-shell test lint fmt seed
 
 help:  ## List available targets
 	@grep -E '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) \
-		| awk -F':.*?## ' '{printf "  \033[36m%-11s\033[0m %s\n", $$1, $$2}'
+		| awk -F':.*?## ' '{printf "  \033[36m%-9s\033[0m %s\n", $$1, $$2}'
 
-db:  ## Start local Postgres and wait until it accepts connections
-	@$(COMPOSE) up -d
-	@printf 'postgres: '
-	@for i in $$(seq 1 60); do \
-		if [ "$$(docker inspect -f '{{.State.Health.Status}}' $(PG) 2>/dev/null)" = healthy ]; then \
-			echo 'ready on localhost:5433'; exit 0; \
-		fi; \
-		printf '.'; sleep 1; \
-	done; \
-	echo ' timed out'; $(COMPOSE) logs --tail=20 db; exit 1
+up:  ## Start db + API + frontend (http://localhost:3000)
+	docker compose up --build -d --wait
+	@echo "Frontend: http://localhost:3000  API docs: http://localhost:8000/docs"
 
-db-stop:  ## Stop the container, keeping the data
-	$(COMPOSE) down
+down:  ## Stop the stack, keeping the local database
+	docker compose down
 
-db-reset:  ## Wipe the data and re-seed from the dump
-	$(COMPOSE) down -v
-	@$(MAKE) --no-print-directory db
+reset:  ## Delete the local database and start fresh from the demo seed
+	docker compose down -v
+	@$(MAKE) --no-print-directory up
+
+logs:  ## Follow logs from all services
+	docker compose logs -f
 
 db-shell:  ## Open psql on the local database
-	docker exec -it $(PG) psql -U stocknews -d stocknews
+	docker compose exec db psql -U stocknews -d stocknews
 
-db-status:  ## Print which database the code resolves to
-	@cd python_backend && python3 -c "import db_connection"
+test:  ## Run the test suite
+	pytest
 
-api: db  ## Run the FastAPI backend
-	python3 -m uvicorn api:app --reload --port 8000
+lint:  ## Lint and check formatting (what CI runs)
+	ruff check . && ruff format --check .
 
-worker: db  ## Run the analysis loop
-	python3 run_analysis.py
+fmt:  ## Apply lint fixes and formatting
+	ruff check --fix . && ruff format .
 
-frontend:  ## Run the Next.js dev server
-	cd frontend && npm run dev
+seed:  ## Refresh db/init/01-demo-seed.sql from SOURCE_DATABASE_URL (read-only)
+	db/pull_demo_seed.sh

@@ -1,24 +1,77 @@
-version: "3.8"
+# Local development stack: Postgres with demo data, the API and the frontend.
+#
+#   docker compose up --build      -> http://localhost:3000 (API docs: http://localhost:8000/docs)
+#   docker compose down -v         -> stop and delete the local database
+#
+# Workers are not started; run one on demand against the local database, e.g.
+#   docker compose run --rm api python run_analysis.py
+# (needs API keys in python_backend/.env, and calls real LLMs).
+
+name: neuralwire
 
 services:
   db:
-    image: postgres:16
-    container_name: neuralwire-pg
+    image: postgres:18 # match production's major version
     environment:
       POSTGRES_DB: stocknews
       POSTGRES_USER: stocknews
       POSTGRES_PASSWORD: stocknews
     ports:
-      - "5433:5432"
+      - "5433:5432" # 5433 on the host, clear of any native Postgres
     volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./neuralwire_dump.sql:/docker-entrypoint-initdb.d/01-seed.sql:ro
+      - pgdata:/var/lib/postgresql
+      # Runs once, when the volume is empty: loads the demo seed.
+      - ./db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U stocknews -d stocknews"]
-      interval: 5s
+      interval: 2s
       timeout: 5s
-      retries: 10
-    restart: unless-stopped
+      retries: 30
+
+  api:
+    build: .
+    command: uvicorn api:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    env_file:
+      # Optional: API keys for running workers. Values under `environment`
+      # override it, so a production DATABASE_URL in there is never used.
+      - path: python_backend/.env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://stocknews:stocknews@db:5432/stocknews
+    volumes:
+      - .:/app # live code, reloaded on save
+      - /app/frontend # hide the frontend tree from the Python reloader
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: /api
+      API_PROXY_TARGET: http://api:8000 # the dev server proxies /api/* here
+    volumes:
+      - ./frontend:/app # live code, hot reload
+      - /app/node_modules # the container's own install, not the host's
+      - /app/.next
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/"]
+      interval: 5s
+      timeout: 30s
+      retries: 20
+      start_period: 60s
 
 volumes:
   pgdata:
