@@ -109,7 +109,10 @@ export default function CoveragePage() {
     if (!ticker) return;
     const ctrl = new AbortController();
     fetch(`${API}/ticker/${ticker}/header`, { signal: ctrl.signal })
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`header: HTTP ${r.status}`); // e.g. 404 unknown ticker
+        return r.json();
+      })
       .then((h) => {
         setLongName(h.long_name ?? ticker);
         document.documentElement.style.setProperty("--sn-accent", h.accent);

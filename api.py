@@ -8,8 +8,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "python_backend"))
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+from typing import Annotated
 
-from fastapi import BackgroundTasks, FastAPI, Query
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 import database
@@ -57,15 +58,30 @@ def _available_tickers() -> list[str]:
     return [utils.to_display_ticker(t) for t in database.get_active_tickers()]
 
 
+def known_ticker(ticker: str) -> str:
+    """
+    Normalise a URL ticker to DB format (brk.b -> BRKB) and reject tickers that are
+    not on the watchlist with a 404. Runs before every /ticker/{ticker}/... endpoint,
+    so unknown tickers never reach the yfinance lookups or LLM calls behind them.
+    """
+    db_ticker = utils.to_db_ticker(ticker.upper())
+    if db_ticker not in database.get_active_tickers():
+        raise HTTPException(status_code=404, detail=f"Unknown ticker: {ticker}")
+    return db_ticker
+
+
+# The DB-format ticker, already validated against the watchlist.
+KnownTicker = Annotated[str, Depends(known_ticker)]
+
+
 # ── Endpoints ──────────────────────────────────────────────────────────────
 
 
 @app.get("/health")
 def health() -> dict[str, str]:
     """
-    Deploy gate for Railway: a new version only takes traffic once this answers.
-    It needs no checks of its own. The app answers only after lifespan startup
-    (imports, DB connection, table setup) has succeeded, so a 200 already proves that.
+    Railway healthcheck: a new deploy only takes traffic once this returns 200.
+    Requests are served only after lifespan startup succeeds, so no further checks are needed.
     """
     return {"status": "ok"}
 
@@ -77,9 +93,8 @@ def list_tickers():
 
 
 @app.get("/ticker/{ticker}/header")
-def ticker_header(ticker: str):
+def ticker_header(ticker: KnownTicker):
     """Return ticker classification, accent color, and header description."""
-    ticker = utils.to_db_ticker(ticker.upper())
     cls = tclass.get_or_fetch(ticker)
     accent = tc.resolve(ticker)
     accent_light = tc.darken_hex(accent)
@@ -102,9 +117,8 @@ def ticker_header(ticker: str):
 
 
 @app.get("/ticker/{ticker}/prices")
-def ticker_prices(ticker: str):
+def ticker_prices(ticker: KnownTicker):
     """Return historical daily close prices."""
-    ticker = utils.to_db_ticker(ticker.upper())
     rows = market_data.get_prices(ticker)
     return {"ticker": utils.to_display_ticker(ticker), "prices": rows or []}
 
@@ -138,11 +152,10 @@ def _refresh_intraday(db_ticker: str) -> None:
 
 
 @app.get("/ticker/{ticker}/intraday")
-def ticker_intraday(ticker: str, background_tasks: BackgroundTasks):
+def ticker_intraday(ticker: KnownTicker, background_tasks: BackgroundTasks):
     """Return intraday (1-min) prices. Triggers a background refresh if market is open and data is stale."""
     from datetime import date, timedelta
 
-    ticker = utils.to_db_ticker(ticker.upper())
     if _market_is_open() and _intraday_is_stale(ticker):
         background_tasks.add_task(_refresh_intraday, ticker)
     window_start = str(date.today() - timedelta(days=7))
@@ -156,12 +169,11 @@ def ticker_intraday(ticker: str, background_tasks: BackgroundTasks):
 
 @app.get("/ticker/{ticker}/articles")
 def ticker_articles(
-    ticker: str,
+    ticker: KnownTicker,
     lookback_days: int = Query(30, ge=1, le=365),
     limit: int = Query(60, ge=1, le=200),
 ):
     """Return recent news articles with AI analysis scores."""
-    ticker = utils.to_db_ticker(ticker.upper())
     conn = get_conn(dict_cursor=True)
     c = conn.cursor()
     c.execute(
@@ -183,14 +195,13 @@ def ticker_articles(
 
 @app.get("/ticker/{ticker}/coverage")
 def ticker_coverage(
-    ticker: str,
+    ticker: KnownTicker,
     min_relevance: int = Query(50, ge=0, le=100),
     min_breaking: int = Query(0, ge=0, le=100),
     min_importance: int = Query(0, ge=0, le=100),
     limit: int = Query(200, ge=1, le=500),
 ):
     """Return filtered articles for the Coverage page."""
-    ticker = utils.to_db_ticker(ticker.upper())
     conn = get_conn(dict_cursor=True)
     c = conn.cursor()
     c.execute(
@@ -223,9 +234,8 @@ def ticker_coverage(
 
 
 @app.get("/ticker/{ticker}/focal-points")
-def ticker_focal_points(ticker: str):
+def ticker_focal_points(ticker: KnownTicker):
     """Return the latest focal points artefact."""
-    ticker = utils.to_db_ticker(ticker.upper())
     artefact = database.get_focal_points(ticker)
     if not artefact:
         return {
@@ -243,9 +253,8 @@ def ticker_focal_points(ticker: str):
 
 
 @app.get("/ticker/{ticker}/monthly-news-flow")
-def ticker_monthly_news_flow(ticker: str):
+def ticker_monthly_news_flow(ticker: KnownTicker):
     """Return the latest monthly news flow artefact."""
-    ticker = utils.to_db_ticker(ticker.upper())
     artefact = database.get_monthly_news_flow(ticker)
     if not artefact:
         return {
@@ -263,8 +272,7 @@ def ticker_monthly_news_flow(ticker: str):
 
 
 @app.get("/ticker/{ticker}/events")
-def ticker_events(ticker: str):
+def ticker_events(ticker: KnownTicker):
     """Return the event timeline for a ticker."""
-    ticker = utils.to_db_ticker(ticker.upper())
     events = database.get_ticker_events(ticker)
     return {"ticker": utils.to_display_ticker(ticker), "events": events or []}

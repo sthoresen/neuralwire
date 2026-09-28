@@ -11,6 +11,14 @@ import api
 
 client = TestClient(api.app)
 
+WATCHLIST = ["NVDA", "BRKB"]
+
+
+@pytest.fixture(autouse=True)
+def watchlist(monkeypatch):
+    """Every /ticker/{ticker}/... request checks the watchlist first; stub it for all tests."""
+    monkeypatch.setattr(api.database, "get_active_tickers", lambda: WATCHLIST)
+
 
 class FakeConn:
     """Minimal psycopg2 connection: returns `rows` and records the query params."""
@@ -102,6 +110,42 @@ def test_url_ticker_is_normalised_before_querying(monkeypatch):
 
     assert queried == ["BRKB"]  # lowercase display form in, DB form out
     assert response.json() == {"ticker": "BRK.B", "events": []}
+
+
+TICKER_ENDPOINTS = [
+    "header",
+    "prices",
+    "intraday",
+    "articles",
+    "coverage",
+    "focal-points",
+    "monthly-news-flow",
+    "events",
+]
+
+
+@pytest.mark.parametrize("endpoint", TICKER_ENDPOINTS)
+def test_unknown_ticker_is_404_and_triggers_no_work(monkeypatch, endpoint):
+    def must_not_run(*_args, **_kwargs):
+        raise AssertionError("no lookups, LLM calls or queries for unknown tickers")
+
+    for module, fn in [
+        (api.tclass, "get_or_fetch"),
+        (api.tc, "resolve"),
+        (api.market_data, "get_prices"),
+        (api.market_data, "get_intraday"),
+        (api.database, "get_ticker_artefact"),
+        (api.database, "get_focal_points"),
+        (api.database, "get_monthly_news_flow"),
+        (api.database, "get_ticker_events"),
+        (api, "get_conn"),
+    ]:
+        monkeypatch.setattr(module, fn, must_not_run)
+
+    response = client.get(f"/ticker/HEALTH/{endpoint}")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Unknown ticker: HEALTH"}
 
 
 # ── Artefacts ────────────────────────────────────────────────────────────────

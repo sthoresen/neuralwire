@@ -46,6 +46,7 @@ export default function ScreenerPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [events, setEvents] = useState<TickerEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   // Reflect the active ticker in the browser tab title
   useEffect(() => {
@@ -57,13 +58,24 @@ export default function ScreenerPage() {
     if (!ticker) return;
     const ctrl = new AbortController();
     setLoading(true);
+    setNotFound(false);
     setPrices([]);
     setIntraday([]);
     setHeader(null);
 
     // Header drives the theme color — fetch it on its own so the accent updates
     // immediately, without waiting for the heavier content fetches below.
-    const headerP = fetch(`${API}/ticker/${ticker}/header`, { signal: ctrl.signal }).then((r) => r.json());
+    // A 404 means the ticker isn't on the watchlist.
+    const headerP = fetch(`${API}/ticker/${ticker}/header`, { signal: ctrl.signal }).then((r) => {
+      if (r.status === 404) {
+        setNotFound(true);
+        const err = new Error(`Unknown ticker: ${ticker}`);
+        err.name = "NotFound";
+        throw err;
+      }
+      if (!r.ok) throw new Error(`header: HTTP ${r.status}`);
+      return r.json();
+    });
     headerP
       .then((h) => {
         setHeader(h);
@@ -88,7 +100,7 @@ export default function ScreenerPage() {
         setArticles(arts.articles ?? []);
         setEvents(evts.events ?? []);
       })
-      .catch((e) => { if (e.name !== "AbortError") console.error(e); })
+      .catch((e) => { if (e.name !== "AbortError" && e.name !== "NotFound") console.error(e); })
       .finally(() => { if (!ctrl.signal.aborted) setLoading(false); });
 
     return () => ctrl.abort();
@@ -142,6 +154,12 @@ export default function ScreenerPage() {
     <>
       {loading && (
         <p className="text-[var(--sn-text-tertiary)] text-sm mt-4">Loading…</p>
+      )}
+
+      {!loading && notFound && (
+        <p className="text-[var(--sn-text-tertiary)] text-sm mt-4">
+          {ticker} isn&apos;t on the NeuralWire watchlist. Pick a ticker from the sidebar.
+        </p>
       )}
 
       {!loading && header && (
