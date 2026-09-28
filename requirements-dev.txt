@@ -1,4 +1,5 @@
 -r requirements.txt
 ruff==0.16.9
 pytest==9.1.1
-httpx==0.27.0
+httpx==0.27.0   # tests build real openai SDK errors from httpx requests/responses
+httpx2==2.13.1  # starlette's TestClient transport (plain httpx is deprecated there)

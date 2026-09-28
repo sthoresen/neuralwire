@@ -1,7 +1,8 @@
 # Tool configuration only — NeuralWire is an application, not an installable package.
 
 [tool.ruff]
-target-version = "py311"
+# Keep in sync with .python-version (the runtime version for CI, Railway and Docker).
+target-version = "py313"
 line-length = 100
 # python_backend modules import each other by bare name (import database),
 # so treat both directories as first-party when sorting imports.

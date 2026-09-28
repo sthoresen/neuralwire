@@ -1,5 +1,7 @@
 # NeuralWire
 
+[![CI](https://github.com/sthoresen/neuralwire/actions/workflows/ci.yml/badge.svg)](https://github.com/sthoresen/neuralwire/actions/workflows/ci.yml)
+
 Thousands of financial articles are published every day, and separating signal from noise — even across a handful of stocks — is a full-time job. What if every stock had a single page: the news that actually moved it, the points analysts are debating, and the open questions worth watching?
 
 NeuralWire is that page. For each ticker on a curated watchlist, it distills the latest news into a focused brief — what happened, what's moving the stock, and the burning open questions — alongside live daily and intraday price charts.

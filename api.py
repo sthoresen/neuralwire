@@ -24,7 +24,7 @@ from db_connection import get_conn  # noqa: E402 — must come after sys.path.in
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """Create tables and seed lookups once at server startup, not at import,
     so the app can be imported (e.g. by tests) without a database."""
     database.init_db()
