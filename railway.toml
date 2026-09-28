@@ -1,14 +1,19 @@
 # railway.toml — NeuralWire build configuration
 # Docs: docs.railway.com/reference/config-as-code
 #
-# The only thing this file sets is the builder. Start commands, cron
-# schedules and env vars all live in each service's Railway dashboard
-# settings, not here — the map below is documentation of what is
+# The only thing this file sets is the builder: every service runs the image
+# built from the repo's Dockerfile (the same one CI and docker compose use).
+# Start commands, healthchecks and env vars live in each service's Railway
+# dashboard settings, not here — the map below is documentation of what is
 # configured there, so keep it in sync by hand.
+#
+# Dashboard start commands run WITHOUT a shell when building from a
+# Dockerfile, so they can't use $VARIABLES. That's why web has none and
+# falls back to the Dockerfile's CMD, which reads $PORT itself.
 #
 # ── Services in the Railway project (all deploy from this repo) ───────────────
 #
-#  web            →  uvicorn api:app --host 0.0.0.0 --port $PORT   (see Procfile)
+#  web            →  (no start command: Dockerfile CMD, uvicorn on $PORT)
 #                    Always on. Serves the FastAPI read API to the
 #                    Next.js frontend on Vercel.
 #                    Healthcheck path /health, timeout 60 s (dashboard,
@@ -45,4 +50,5 @@
 # XAI_API_KEY, ALPHA_VANTAGE_API_KEY, ALPACA_KEY, ALPACA_SECRET.
 
 [build]
-builder = "nixpacks"
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"

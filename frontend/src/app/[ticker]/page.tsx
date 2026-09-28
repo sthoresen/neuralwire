@@ -158,7 +158,7 @@ export default function ScreenerPage() {
 
       {!loading && notFound && (
         <p className="text-[var(--sn-text-tertiary)] text-sm mt-4">
-          {ticker} isn&apos;t on the NeuralWire watchlist. Pick a ticker from the sidebar.
+          {`${ticker} isn't on the NeuralWire watchlist. Pick a ticker from the sidebar.`}
         </p>
       )}
 
