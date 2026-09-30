@@ -8,9 +8,6 @@ from trafilatura.settings import use_config
 import database
 import utils
 
-ALPHA_VANTAGE_API_KEY = utils.get_env_variable("ALPHA_VANTAGE_API_KEY")
-FINNHUB_API_KEY = utils.get_env_variable("FINNHUB_API_KEY")
-POLYGON_API_KEY = utils.get_env_variable("POLYGON_API_KEY")
 MAX_WORKERS = 10
 
 # Seconds per fetch attempt. trafilatura retries internally, so worst-case
@@ -22,10 +19,11 @@ DOWNLOAD_TIMEOUT = 10
 _TRAFILATURA_CFG = use_config()
 _TRAFILATURA_CFG.set("DEFAULT", "DOWNLOAD_TIMEOUT", str(DOWNLOAD_TIMEOUT))
 
-API_KEYS = {
-    "finnhub": FINNHUB_API_KEY,
-    "polygon": POLYGON_API_KEY,
-    "alpha_vantage": ALPHA_VANTAGE_API_KEY,
+# Environment variable holding each provider's key, read when the provider is used.
+API_KEY_VARS = {
+    "finnhub": "FINNHUB_API_KEY",
+    "polygon": "POLYGON_API_KEY",
+    "alpha_vantage": "ALPHA_VANTAGE_API_KEY",
 }
 
 PROVIDERS_TO_USE = [
@@ -71,7 +69,16 @@ def get_alpha_vantage_news(api_key, ticker=None):
         response.raise_for_status()
         data = response.json()
 
-        feed = data.get("feed", [])
+        if "feed" not in data:
+            # Throttled or rejected requests still get HTTP 200, with a message
+            # instead of a feed. These messages can quote the API key.
+            message = (
+                data.get("Information") or data.get("Note") or data.get("Error Message") or data
+            )
+            print(f"  -> No feed in response: {str(message).replace(api_key, '<key>')[:300]}")
+            return
+
+        feed = data["feed"]
         print(f"  -> Found {len(feed)} items in feed.")
 
         for item in feed:
@@ -95,7 +102,8 @@ def get_alpha_vantage_news(api_key, ticker=None):
         print(f"  -> Successfully saved {new_count} NEW articles to DB.")
 
     except Exception as e:
-        print(f"  -> Error fetching Alpha Vantage: {e}")
+        # HTTP errors include the request URL, and with it the API key.
+        print(f"  -> Error fetching Alpha Vantage: {str(e).replace(api_key, '<key>')}")
 
 
 def get_finnhub_news():
@@ -120,7 +128,7 @@ def pull_all_news():
 
     for provider in PROVIDERS_TO_USE:
         if provider in provider_functions:
-            api_key = API_KEYS.get(provider)
+            api_key = utils.get_env_variable(API_KEY_VARS[provider])
             if not api_key or api_key == "YOUR_API_KEY_HERE":
                 print(f"\nWarning: API key for {provider} is not set. Skipping.")
                 continue

@@ -148,8 +148,9 @@ def run(ticker: str, limit: int, fiscal_year: int | None, fiscal_quarter: int | 
 
         meta_df = Ticker(ticker).earning_call_transcripts().get_transcripts_list()
     except Exception as e:
-        print(f"ERROR fetching transcript list: {e}")
-        sys.exit(1)
+        # Raise rather than sys.exit(): callers looping over tickers catch
+        # Exception, and SystemExit would end the whole run instead.
+        raise RuntimeError(f"fetching transcript list for {ticker}: {e}") from e
 
     # Filter to a single quarter if specified
     if fiscal_year and fiscal_quarter:
@@ -158,7 +159,7 @@ def run(ticker: str, limit: int, fiscal_year: int | None, fiscal_quarter: int | 
         ]
         if meta_df.empty:
             print(f"No transcript found for Q{fiscal_quarter} FY{fiscal_year}")
-            sys.exit(0)
+            return 0
     else:
         # Most recent N quarters, newest first
         meta_df = meta_df.sort_values("report_date", ascending=False).head(limit)
