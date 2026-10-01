@@ -110,10 +110,10 @@ class LLMProviderManager:
             # Cheap, fast. For high-volume or low-stakes tasks (article triage,
             # color lookup, tag generation, event scan pass 1).
             {
-                "name": "Tencent: Hy3 preview",
+                "name": "Tencent: Hy3",
                 "base_url": "https://openrouter.ai/api/v1",
                 "api_key": self.openrouter_key,
-                "model": "tencent/hy3-preview",
+                "model": "tencent/hy3",
                 "tier": "economy",
                 "supports_reasoning": True,
                 "is_active": True,
@@ -152,10 +152,10 @@ class LLMProviderManager:
             # ── Standard ───────────────────────────────────────────────────────
             # Good quality/cost balance. Default for most analysis and writing.
             {
-                "name": "Tencent: Hy3 preview",
+                "name": "Tencent: Hy3",
                 "base_url": "https://openrouter.ai/api/v1",
                 "api_key": self.openrouter_key,
-                "model": "tencent/hy3-preview",
+                "model": "tencent/hy3",
                 "tier": "standard",
                 "supports_reasoning": True,
                 "is_active": True,

@@ -164,3 +164,32 @@ def test_transcript_source_failure_raises_an_exception_not_systemexit(monkeypatc
         ingest_earnings.run(
             ticker="NVDA", limit=4, fiscal_year=None, fiscal_quarter=None, commit=False
         )
+
+
+# ── Pre-filter ───────────────────────────────────────────────────────────────
+
+
+class _RecordingLLM:
+    """Stands in for LLMProviderManager: records the prompt and returns a fixed reply."""
+
+    def __init__(self, reply):
+        self.reply, self.prompts = reply, []
+
+    def call(self, prompt, **kwargs):
+        self.prompts.append(prompt)
+        return self.reply, "fake"
+
+
+def test_prefilter_prompt_includes_the_source_domain():
+    llm = _RecordingLLM("YES")
+    analysis._is_llm_noise("Wingstop target cut", "TD Cowen lowered...", "marketbeat.com", llm)
+    assert "Source: marketbeat.com" in llm.prompts[0]
+
+
+@pytest.mark.parametrize(
+    "reply, is_noise",
+    [("NO", True), ("no.", True), ("YES", False), ("YES (keep)", False), (None, False)],
+)
+def test_prefilter_verdict_fails_open(reply, is_noise):
+    # None = every provider failed: the article goes through rather than being lost.
+    assert analysis._is_llm_noise("h", "s", "reuters.com", _RecordingLLM(reply)) is is_noise

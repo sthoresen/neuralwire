@@ -3,6 +3,7 @@ import os
 import re
 from datetime import datetime
 from typing import Any
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 
@@ -151,3 +152,9 @@ def csv_to_tickers(res: str | None) -> list[str] | int:
 
     # Strip each piece and drop empties: tolerates "AAPL, NVDA", trailing commas and newlines.
     return [t.strip() for t in res.split(",") if t.strip()]
+
+
+def url_domain(url: str | None) -> str:
+    """The publisher's domain from an article URL (https://www.reuters.com/x → reuters.com), or "unknown"."""
+    host = urlparse(url or "").hostname or ""
+    return host.removeprefix("www.") or "unknown"

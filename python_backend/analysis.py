@@ -479,9 +479,12 @@ def _is_regex_noise(headline: str) -> bool:
     return any(p.search(headline) for p in _NOISE_PATTERNS)
 
 
-def _is_llm_noise(headline: str, api_summary: str, llm_manager: llms.LLMProviderManager) -> bool:
+def _is_llm_noise(
+    headline: str, api_summary: str, source: str, llm_manager: llms.LLMProviderManager
+) -> bool:
     """Returns True if the LLM judges the article as not worth analyzing. Fails open (returns False) on LLM error."""
-    prompt = prompts.prefilter_prompt.format(
+    prompt = prompts.prefilter_prompt_v2.format(
+        source=source,
         headline=headline,
         summary=(api_summary or "")[:500],
     )
@@ -497,7 +500,7 @@ def _run_pre_filter(articles: list[dict], stats: RunStats = None) -> list[dict]:
     """
     Removes obvious noise before scraping or full LLM analysis.
     Stage 1: free regex on headline.
-    Stage 2: cheap LLM call on headline + api_summary.
+    Stage 2: cheap LLM call on source domain + headline + api_summary.
     Returns the articles that should proceed to full analysis.
     """
     keep, regex_skip = [], []
@@ -520,7 +523,8 @@ def _run_pre_filter(articles: list[dict], stats: RunStats = None) -> list[dict]:
     for article in keep:
         headline = article.get("headline") or ""
         api_summary = article.get("api_summary") or ""
-        if _is_llm_noise(headline, api_summary, llm_manager):
+        source = utils.url_domain(article.get("url"))
+        if _is_llm_noise(headline, api_summary, source, llm_manager):
             llm_skip_ids.append(article["id"])
         else:
             survivors.append(article)

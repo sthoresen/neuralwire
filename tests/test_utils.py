@@ -105,3 +105,23 @@ def test_csv_to_tickers_never_returns_empty_tickers(raw):
 @pytest.mark.parametrize("raw", [None, "", "   ", 42])
 def test_csv_to_tickers_signals_failed_llm_output_with_minus_one(raw):
     assert utils.csv_to_tickers(raw) == -1
+
+
+# ── url_domain ───────────────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    "url, expected",
+    [
+        ("https://www.reuters.com/markets/us/some-story", "reuters.com"),
+        ("https://finance.yahoo.com/news/x.html", "finance.yahoo.com"),  # subdomains are kept
+        ("http://marketbeat.com/a?b=c", "marketbeat.com"),
+    ],
+)
+def test_url_domain_extracts_the_publisher(url, expected):
+    assert utils.url_domain(url) == expected
+
+
+@pytest.mark.parametrize("url", [None, "", "not a url"])
+def test_url_domain_is_unknown_for_missing_or_bad_urls(url):
+    assert utils.url_domain(url) == "unknown"

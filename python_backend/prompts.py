@@ -61,28 +61,25 @@ Source: {src} from {url}
 """
 
 
-prefilter_prompt = """You are screening financial news articles to decide if one is worth reading in full.
+# v2: the line is "written to report or argue something" vs. "generated from a template or
+# data feed", rather than a topic list. Sees the source domain; leans towards keeping.
+prefilter_prompt_v2 = """You are screening financial news articles before they are read in full.
 
-The bar is: would a serious investor or analyst find this worth their time?
+Keep an article if a person wrote it to report something that happened at a specific company
+(earnings, deals, legal or regulatory news, leadership, products, analyst actions, listings)
+or to argue a real point about a company.
 
-Reply YES if the article is likely to contain any of the following:
-- Hard news: earnings, M&A, regulatory actions, lawsuits, product launches, leadership changes, major contracts
-- Substantive analysis: deep dives into a company's business model, competitive position, or financials — the kind of work published by research firms, respected newsletters, or experienced analysts
-- Meaningful commentary: a well-reasoned argument about a company's prospects that goes beyond "stock might go up"
+Skip it if it is generated from a template or data feed: price ticks, institutional holdings
+filings, "stock price today" pages, listicles, generic "is X a buy?" filler. A useful test:
+if you could swap in another company's name and nothing else would need to change, skip it.
 
-Reply NO if the article is:
-- Routine price movement ("stock up 2%", "shares fell today")
-- A listicle or watchlist ("top 10 stocks", "names to watch")
-- Shallow clickbait or SEO filler with no real insight
-- A general market or macro roundup where the company is incidentally mentioned
-- An index/ETF rebalance announcement
+When unsure, keep it. Quality is judged later; only remove what is clearly not worth reading.
 
-When in doubt, reply YES.
-
+Source: {source}
 Headline: {headline}
 Summary: {summary}
 
-Reply with only YES or NO."""
+Reply with only YES (keep) or NO (skip)."""
 
 
 analyze_article_impact_prompt_v1 = """
