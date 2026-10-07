@@ -1,4 +1,6 @@
+import time
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime, timedelta
 from typing import NamedTuple
 
 import requests
@@ -26,13 +28,20 @@ API_KEY_VARS = {
     "alpha_vantage": "ALPHA_VANTAGE_API_KEY",
 }
 
-PROVIDERS_TO_USE = [
-    #'finnhub',
-    #'polygon',
-    "alpha_vantage"
-]
+# Alpha Vantage's news endpoint is premium-only since October 2026.
+PROVIDERS_TO_USE = ["finnhub"]
 
-TICKERS_PER_CYCLE = 2
+# Tickers fetched per run; None fetches all. Alpha Vantage's free tier
+# (25 requests a day) needs 2, rotating through the watchlist.
+TICKERS_PER_CYCLE: int | None = None
+
+# Seconds between provider requests. Finnhub allows 60 a minute, and Alpha
+# Vantage rejects more than one per second.
+REQUEST_INTERVAL = 1.1
+
+# Days of news requested per Finnhub call. Overlapping runs are harmless:
+# articles are deduplicated by URL.
+FINNHUB_LOOKBACK_DAYS = 1
 
 
 def get_active_tickers() -> list[str]:
@@ -106,8 +115,46 @@ def get_alpha_vantage_news(api_key, ticker=None):
         print(f"  -> Error fetching Alpha Vantage: {str(e).replace(api_key, '<key>')}")
 
 
-def get_finnhub_news():
-    pass
+def get_finnhub_news(api_key: str, ticker: str) -> None:
+    """Fetch the latest company news for one ticker from Finnhub and save new articles."""
+    symbol = utils.to_display_ticker(ticker)  # Finnhub uses BRK.B, the DB stores BRKB
+    today = datetime.now(UTC).date()
+    params = {
+        "symbol": symbol,
+        "from": str(today - timedelta(days=FINNHUB_LOOKBACK_DAYS)),
+        "to": str(today),
+        "token": api_key,
+    }
+    print(f"Fetching Finnhub news for ticker={ticker}...")
+
+    try:
+        response = requests.get("https://finnhub.io/api/v1/company-news", params=params, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+
+        if not isinstance(data, list):
+            print(f"  -> Unexpected response: {str(data).replace(api_key, '<key>')[:300]}")
+            return
+
+        new_count = 0
+        for item in data:
+            article_payload = {
+                "url": item.get("url"),
+                "title": item.get("headline"),
+                "source": item.get("source") or "Finnhub",
+                "summary": item.get("summary"),
+                "time_published": datetime.fromtimestamp(item["datetime"], UTC).replace(
+                    tzinfo=None
+                ),
+            }
+            if database.insert_raw_article(ticker, article_payload):
+                new_count += 1
+
+        print(f"  -> Found {len(data)} articles, saved {new_count} new.")
+
+    except Exception as e:
+        # HTTP errors include the request URL, and with it the API key.
+        print(f"  -> Error fetching Finnhub: {str(e).replace(api_key, '<key>')}")
 
 
 def get_polygon_news():
@@ -123,7 +170,7 @@ provider_functions = {
 
 def pull_all_news():
     all_tickers = get_active_tickers()
-    tickers = get_next_tickers(all_tickers)
+    tickers = all_tickers if TICKERS_PER_CYCLE is None else get_next_tickers(all_tickers)
     print(f"[pull_all_news] Active tickers: {len(all_tickers)}, fetching this cycle: {tickers}")
 
     for provider in PROVIDERS_TO_USE:
@@ -133,7 +180,9 @@ def pull_all_news():
                 print(f"\nWarning: API key for {provider} is not set. Skipping.")
                 continue
 
-            for ticker in tickers:
+            for i, ticker in enumerate(tickers):
+                if i:
+                    time.sleep(REQUEST_INTERVAL)
                 provider_functions[provider](api_key, ticker)
         else:
             print(f"\nWarning: Provider '{provider}' is not recognized.")

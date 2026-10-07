@@ -126,7 +126,7 @@ PostgreSQL, defined in [database.py](python_backend/database.py) and [market_dat
 | **Backend** | FastAPI (Python 3.13), APScheduler — deployed on Railway as a Docker image |
 | **Database** | PostgreSQL 18 (Railway) |
 | **AI** | xAI Grok (X search), OpenRouter (multi-model routing) |
-| **Data sources** | Alpha Vantage (news), Alpaca Markets (prices), defeatbeta (earnings transcripts) |
+| **Data sources** | Alpha Vantage (news), Finnhub (news), Alpaca Markets (prices), defeatbeta (earnings transcripts) |
 | **Scraping** | trafilatura (parallel full-text extraction) |
 | **Tooling** | Docker Compose, GitHub Actions, pytest, Ruff |
 
@@ -153,7 +153,7 @@ Workers aren't started by default, since they call paid APIs. With keys in `pyth
 
 Each backend job is a small run_.py entrypoint (run_fetch.py, run_analysis.py, run_events.py, …) that can also be run on its own.
 
-Configuration is via environment variables (`DATABASE_URL`, `OPENROUTER_KEY`, `XAI_API_KEY`, `ALPHA_VANTAGE_API_KEY`, `ALPACA_KEY`, `ALPACA_SECRET`). In local dev, API calls are proxied through `/api` ([`next.config.ts`](frontend/next.config.ts)) so the browser stays same-origin.
+Configuration is via environment variables (`DATABASE_URL`, `OPENROUTER_KEY`, `XAI_API_KEY`, `FINNHUB_API_KEY`, `ALPACA_KEY`, `ALPACA_SECRET`). In local dev, API calls are proxied through `/api` ([`next.config.ts`](frontend/next.config.ts)) so the browser stays same-origin.
 
 ---
 

@@ -3,6 +3,7 @@
 import subprocess
 import sys
 import types
+from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -142,6 +143,83 @@ def test_http_errors_are_logged_without_the_key(monkeypatch, capsys):
     output = capsys.readouterr().out
     assert "apikey=<key>" in output
     assert KEY not in output
+
+
+# ── Finnhub ──────────────────────────────────────────────────────────────────
+
+
+def _finnhub_article(**overrides):
+    # Shape of one item from Finnhub's /company-news response.
+    article = {
+        "category": "company",
+        "datetime": 1791370800,  # 2026-10-07 11:00:00 UTC
+        "headline": "Nvidia unveils new chip",
+        "id": 1,
+        "image": "",
+        "related": "NVDA",
+        "source": "Yahoo",
+        "summary": "Short summary.",
+        "url": "https://finnhub.io/api/news?id=abc",
+    }
+    return {**article, **overrides}
+
+
+def test_finnhub_articles_are_saved_with_publisher_and_utc_time(monkeypatch, saved):
+    monkeypatch.setattr(
+        news_reporter.requests, "get", lambda *a, **k: FakeResponse([_finnhub_article()])
+    )
+
+    news_reporter.get_finnhub_news(KEY, "NVDA")
+
+    assert saved == [
+        {
+            "url": "https://finnhub.io/api/news?id=abc",
+            "title": "Nvidia unveils new chip",
+            "source": "Yahoo",
+            "summary": "Short summary.",
+            "time_published": datetime(2026, 10, 7, 11, 0),
+        }
+    ]
+
+
+def test_finnhub_is_asked_for_the_display_symbol(monkeypatch, saved):
+    requested = []
+
+    def fake_get(url, params, timeout):
+        requested.append(params)
+        return FakeResponse([])
+
+    monkeypatch.setattr(news_reporter.requests, "get", fake_get)
+
+    news_reporter.get_finnhub_news(KEY, "BRKB")
+
+    assert requested[0]["symbol"] == "BRK.B"
+    assert requested[0]["from"] < requested[0]["to"]
+
+
+def test_finnhub_error_response_is_logged_without_the_key(monkeypatch, saved, capsys):
+    rejected = {"error": f"Invalid API key {KEY}"}
+    monkeypatch.setattr(news_reporter.requests, "get", lambda *a, **k: FakeResponse(rejected))
+
+    news_reporter.get_finnhub_news(KEY, "NVDA")
+
+    output = capsys.readouterr().out
+    assert "Unexpected response" in output
+    assert KEY not in output
+    assert saved == []
+
+
+def test_each_run_fetches_every_ticker_with_a_pause_between(monkeypatch):
+    fetched, pauses = [], []
+    monkeypatch.setattr(news_reporter, "get_active_tickers", lambda: ["AMD", "NVDA", "TSLA"])
+    monkeypatch.setitem(news_reporter.provider_functions, "finnhub", lambda k, t: fetched.append(t))
+    monkeypatch.setattr(news_reporter.utils, "get_env_variable", lambda name: KEY)
+    monkeypatch.setattr(news_reporter.time, "sleep", pauses.append)
+
+    news_reporter.pull_all_news()
+
+    assert fetched == ["AMD", "NVDA", "TSLA"]
+    assert pauses == [news_reporter.REQUEST_INTERVAL] * 2
 
 
 # ── Earnings transcripts ─────────────────────────────────────────────────────
