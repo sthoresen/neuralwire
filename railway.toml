@@ -30,6 +30,11 @@
 #                      run_artefacts.py         0 5 * * *      05:00 UTC daily
 #                      run_sync_daily_prices.py 0 22 * * 1-5   after NYSE close
 #                      run_sync_intraday.py     15 21 * * 1-5  15 min after close
+#                      run_x_refresh.py         weekdays 9:35, 12:45 and 16:05 New
+#                                               York time (16:05 adds --weekly), and
+#                                               weekends 12:00 --weekly. Only when
+#                                               X_PIPELINE_ENABLED=1, since each run
+#                                               spends a little on Apify and LLMs.
 #
 #  analysis-loop  →  python run_analysis.py
 #                    Always on, and deliberately a SEPARATE service from
@@ -48,6 +53,9 @@
 #
 # Every app service needs the same env vars: DATABASE_URL, OPENROUTER_KEY,
 # XAI_API_KEY, ALPHA_VANTAGE_API_KEY, ALPACA_KEY, ALPACA_SECRET.
+#
+# The X pipeline (neuralwire service only) also needs APIFY_TOKEN and X_PIPELINE_ENABLED=1.
+# X_BEARER_TOKEN is optional: it only powers the free coverage check against X's own counts.
 
 [build]
 builder = "DOCKERFILE"

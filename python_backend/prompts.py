@@ -388,3 +388,144 @@ The ticker in focus is: {ticker}. Content:
 {content}
 ---
 """
+
+
+x_daily_digest_prompt = """
+You are writing the {section_title} for Neuralwire, a financial news platform for investors.
+It covers {period}.
+
+You are given posts from X by accounts Neuralwire follows, most relevant first. Each has a
+reference like [3]. {context_note}
+
+## Structure
+1. A title of at most 10 words that names the lead story, in sentence case.
+2. One lead paragraph on the most important story, or on two closely linked stories. Say what
+   happened, then what it means for investors, as part of the prose and without a label such as
+   "Why it matters". Fit the explanation to the story: two or three sentences when the news is
+   unfamiliar or its consequence is not obvious, a short clause when it is.
+3. "Also:" followed by two or three other stories, never more, one sentence each, each line
+   starting with "- ". Add a short clause on what a story means only when it tells the reader something. Leave
+   this part out if nothing else mattered.
+
+## Style
+- About 120 to 170 words in total. Write less when little happened.
+- Readable and relaxed, not dense: write the way a good financial journalist explains things to
+  a smart reader. Put it in your own words. Do not copy the posts' phrasing, hype or tone, and do
+  not stack facts into long sentences.
+- At most one or two numbers per sentence. Leave out technical specifications such as parameter
+  counts, benchmark names and version numbers, unless they are the news.
+- Never refer to the day, the week or the posts ("today", "Monday", "a big day", "this week").
+  The page already says which day it is.
+- Say whose view an opinion is. Refer to people by name when the post makes it clear who they
+  are, otherwise by their @handle.
+- Name a company only when a post names it or is clearly about it.
+- Cite the posts each statement rests on, right after it: "Mistral released Large 4 [2][5]."
+  Every factual sentence in the lead and every "Also" line needs a citation.
+- Take facts, numbers and events only from the posts. You may add general background any
+  informed investor knows, such as what a company does, but nothing new.
+- Do not use em dashes or markdown.
+
+## Output
+The title on the first line, a blank line, the lead paragraph, a blank line, then "Also:" and
+its lines. Nothing else.
+
+## Example
+An example of the form, from a different day. Its references are not the posts below.
+
+{example}
+
+## Posts
+{posts}
+"""
+
+
+x_weekly_digest_prompt = """
+You are writing the weekly {section_title} for Neuralwire, a financial news platform for
+investors. It covers {period}.
+
+Below are the daily briefings from those days, for context, then the most relevant posts from X
+by accounts Neuralwire follows, each with a reference like [3]. {context_note}
+
+## Structure
+1. A title of at most 10 words that names the main themes, in sentence case.
+2. Three stories in order of importance: two if little happened, four at most. Several posts
+   or daily items about the same development are one story. Each story is a heading line of at
+   most five words, then on the next line two or three sentences: what happened, how it
+   developed if it did, and what it means for investors.
+
+## Style
+- About 180 to 220 words in total.
+- Readable and relaxed, not dense: write the way a good financial journalist explains things to
+  a smart reader. Put it in your own words. Do not copy the posts' phrasing, hype or tone, and do
+  not stack facts into long sentences.
+- At most one or two numbers per sentence. Leave out technical specifications such as parameter
+  counts, benchmark names and version numbers, unless they are the news.
+- Never refer to the week, the day or the posts ("this week", "the week", "on Monday",
+  "spent the week"). The page already says which week it is.
+- Say whose view an opinion is. Refer to people by name when the post makes it clear who they
+  are, otherwise by their @handle.
+- Name a company only when a post names it or is clearly about it.
+- Cite the posts each statement rests on, right after it: "Yields hit a 24-year high [4][9]."
+  Cite posts, not the daily briefings. Every factual sentence needs a citation.
+- Take facts, numbers and events only from the posts and briefings. You may add general
+  background any informed investor knows, but nothing new.
+- Do not use em dashes or markdown.
+
+## Output
+The title on the first line, then each story as its heading line followed by its text, with a
+blank line before each story. Nothing else.
+
+## Example
+An example of the form, from a different day. Its references are not the posts below.
+
+{example}
+
+## Daily briefings
+{dailies}
+
+## Posts
+{posts}
+"""
+
+
+# One example per section and format, written by hand from other days' posts, to set the tone
+# and density that rules alone did not.
+x_daily_example_ai = """Anthropic puts a top-tier model in its free tier
+
+Anthropic released Claude Sonnet 5.5, which it says is more than 30% faster than Sonnet 5 and up to 30% cheaper for most work [1]. The more telling part is where it runs: Simon Willison points out that it now powers the free tier on claude.ai, while ChatGPT's free users still get the less capable GPT-5.6 Luna [2]. That raises what people expect to get for free, and puts pressure on OpenAI to match it without charging.
+
+Also:
+- Nathan Lambert recommends a report arguing that an "intelligence explosion" is running into diminishing returns, though he says it could still prove wrong [3].
+- Lambert also pushed back on claims that China's ModelScope is a real alternative to Hugging Face, saying it barely works outside China [4].
+- Sam Altman teased "a new thing" for OpenAI's developer conference, without details [5]."""
+
+x_daily_example_macro = """A weak jobs report takes an October hike off the table
+
+The US added just 29,000 jobs in September, far below the roughly 90,000 expected, and unemployment rose to 4.2% [1][2]. Markets moved fast: the odds of an October Fed hike fell from 70% to 23% in three days, as Mohamed El-Erian notes [3]. A pause eases pressure on bond yields and on the expensive stocks most sensitive to them, though a December hike is still seen as likely [4].
+
+Also:
+- The Nasdaq 100 hit a record, yet nearly 60% of its stocks are down more than 20% from their peaks [5].
+- Manufacturing prices paid jumped to their highest since May, a reminder that inflation pressure hasn't gone away [6].
+- France's borrowing premium over Germany widened to its highest since 2011 on political turmoil [7]."""
+
+x_weekly_example_ai = """Safety slips at OpenAI, cheaper models everywhere
+
+OpenAI's agents went off-script
+OpenAI disclosed that AI agents in its research environment sent training data to outside services without permission, and later that some models gained unauthorized internet access during training [1][2]. It paused its most capable models until the systems are hardened. Incidents like these can delay releases and raise compliance costs across the industry.
+
+Frontier AI gets cheaper
+Anthropic's Sonnet 5.5 is faster and up to 30% cheaper, and now powers Claude's free tier [3][4]. OpenAI answered with 6.1 Sol, close to its top model's intelligence at a fifth of the price [5]. Lower prices make it easier for companies to adopt AI, which keeps demand for the compute behind it growing.
+
+The economy hasn't caught up
+Ethan Mollick notes the AI buildout already exceeds the railroads as a share of GDP, yet about 20 studies find no overall effect on unemployment so far [6][7]. The payoff is still mostly ahead."""
+
+x_weekly_example_macro = """Yields climb to multi-decade highs as costs rise
+
+Long-term yields hit 24-year highs
+The 30-year Treasury yield topped 5.6%, its highest since 2002, and the 5-year passed 5% for the first time since 2007 [1][2]. Strong business surveys and rising input costs drove the move, and Fed Governor Michael Barr said more tightening is likely needed [3][4]. Higher yields raise borrowing costs for companies and make stocks look expensive next to bonds.
+
+Credit starts to feel it
+High-yield spreads widened sharply in three days as heavy junk-bond supply met cautious buyers [5]. Goldman counts nearly $600 billion of AI-related debt issued this year [6]. Lisa Abramowicz reads it as a sign that higher rates are starting to bite [7].
+
+Stocks look stretched
+Barclays warns the extra return stocks offer over bonds is near multi-decade lows, and Goldman says breadth is at dot-com-era lows, with a few AI names masking the weakness [8][9]."""

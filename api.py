@@ -7,11 +7,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "python_backend"))
 
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
-from typing import Annotated
+from datetime import UTC, date, datetime, timedelta
+from typing import Annotated, Literal
 
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 import database
 import market_data
@@ -19,6 +20,10 @@ import sync_intraday
 import ticker_classification as tclass
 import ticker_colors as tc
 import utils
+import x_digest
+import x_jev
+import x_sources
+import x_store
 from db_connection import get_conn  # noqa: E402 — must come after sys.path.insert
 
 # ── Init ───────────────────────────────────────────────────────────────────
@@ -33,6 +38,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     database.migrate_add_earnings_tables()
     tc.init()
     tclass.init()
+    x_store.init_tables()
     yield
 
 
@@ -276,3 +282,111 @@ def ticker_events(ticker: KnownTicker):
     """Return the event timeline for a ticker."""
     events = database.get_ticker_events(ticker)
     return {"ticker": utils.to_display_ticker(ticker), "events": events or []}
+
+
+# ── X feed ─────────────────────────────────────────────────────────────────
+
+
+@app.get("/x/days")
+def x_days():
+    """UTC days with stored X posts, newest first."""
+    return {"days": x_store.days_with_posts()}
+
+
+@app.get("/x/posts")
+def x_posts(day: Annotated[date, Query(alias="date")]):
+    """
+    One UTC day of stored X posts, grouped by account group, each with its Jev scores
+    and rank (x_jev.rank_score), plus that day's fetch, count and scoring runs.
+    """
+    start = datetime(day.year, day.month, day.day, tzinfo=UTC)
+    end = start + timedelta(days=1)
+    groups: dict[str, list[dict]] = {"ai": [], "macro": [], "wire": []}
+    for p in x_store.posts_between(start, end, x_jev.QSET):
+        p["rank"] = x_jev.rank_score(p["scores"], p["group_name"])
+        groups.setdefault(p["group_name"], []).append(p)
+    return {
+        "date": day.isoformat(),
+        "qset": x_jev.QSET,
+        "judging": x_store.is_local_db(),
+        "groups": groups,
+        "runs": x_store.runs_for_window(start, end),
+    }
+
+
+class Judgment(BaseModel):
+    post_id: str
+    verdict: Literal["keep", "skip"] | None
+
+
+@app.post("/x/judgments")
+def x_judge(j: Judgment):
+    """Your keep/skip verdict on a post (null clears it). Local database only: it's a dev tool."""
+    if not x_store.is_local_db():
+        raise HTTPException(status_code=403, detail="Judging is only enabled on a local database")
+    x_sources.append_judgment(int(j.post_id), j.verdict)
+    x_store.set_judgment(int(j.post_id), j.verdict)
+    return {"post_id": j.post_id, "verdict": j.verdict}
+
+
+# ── Front page ─────────────────────────────────────────────────────────────
+
+# Post fields the front page shows; scores and verdicts stay on the dev feed.
+_FRONT_POST_FIELDS = (
+    "post_id",
+    "author_handle",
+    "author_name",
+    "created_at",
+    "text",
+    "url",
+    "likes",
+    "reposts",
+    "views",
+    "media",
+    "links",
+    "quoted",
+    "group_name",
+)
+
+
+@app.get("/front-page")
+def front_page(until: Annotated[datetime | None, Query()] = None):
+    """
+    The X briefings as of a moment (default: now): per section, the newest 24-hour and 7-day
+    briefing written by then, the "top posts" from each briefing's own window, and every post
+    they cite. `editions` lists when daily briefings were written, so the page can build its
+    date picker in the reader's time zone and ask for the end of a local day.
+    """
+    editions = x_store.edition_times()
+    if not editions:
+        return {"editions": [], "digests": {}, "showcase": {}, "posts": {}}
+    if until is not None and until.tzinfo is None:
+        until = until.replace(tzinfo=UTC)
+
+    digests = {
+        s: {p: x_store.latest_digest(s, p, until) for p in ("day", "week")}
+        for s in x_digest.SECTIONS
+    }
+    posts, showcase = {}, {}
+    for period in ("day", "week"):
+        ref = digests["ai"][period] or digests["macro"][period]
+        window = (
+            x_store.posts_between(ref["window_start"], ref["window_end"], x_jev.QSET) if ref else []
+        )
+        posts.update({p["post_id"]: p for p in window})
+        showcase[period] = x_digest.showcase(window, {"ai": 4, "macro": 2})
+
+    cited = {
+        pid for d in digests.values() for g in d.values() if g for pid in g["content"]["post_ids"]
+    }
+    missing = [int(pid) for pid in cited if pid not in posts]
+    posts.update({p["post_id"]: p for p in x_store.posts_by_ids(missing, x_jev.QSET)})
+    wanted = cited | set(showcase["day"]) | set(showcase["week"])
+    return {
+        "editions": [t.isoformat() for t in editions],
+        "digests": digests,
+        "showcase": showcase,
+        "posts": {
+            pid: {k: posts[pid][k] for k in _FRONT_POST_FIELDS} for pid in wanted if pid in posts
+        },
+    }

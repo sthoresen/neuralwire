@@ -15,6 +15,13 @@ export default function Sidebar() {
   const ticker = raw ? String(raw).toUpperCase() : "";
 
   const [tickers, setTickers] = useState<string[]>(["NVDA"]);
+  // The last ticker viewed (cookie set on ticker change), for the ticker links off ticker pages.
+  const [lastTicker, setLastTicker] = useState("");
+
+  useEffect(() => {
+    const m = document.cookie.match(/(?:^|; )sn-ticker=([^;]+)/);
+    if (m) setLastTicker(decodeURIComponent(m[1]));
+  }, []);
 
   // Load ticker list
   useEffect(() => {
@@ -33,6 +40,8 @@ export default function Sidebar() {
 
   const isCoverage = pathname.endsWith("/coverage");
   const isAbout = pathname === "/about";
+  const isFeed = pathname === "/feed";
+  const isToday = pathname === "/";
 
   function handleTickerChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const t = e.target.value;
@@ -60,7 +69,7 @@ export default function Sidebar() {
     );
   };
 
-  const base = ticker || "NVDA";
+  const base = ticker || lastTicker || "NVDA";
 
   return (
     <>
@@ -97,38 +106,46 @@ export default function Sidebar() {
       <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--sn-text-tertiary)] px-[6px] pt-2 pb-1 block">
         Navigate
       </span>
-      {navLink(`/${base}`, "Screener", "📈", !isCoverage && !isAbout)}
-      {navLink(`/${base}/coverage`, "Coverage", "📰", isCoverage)}
+      {navLink("/", "Latest from X", "🗞️", isToday)}
+      {navLink(`/${base}`, "Stock dashboard", "📈", !isCoverage && !isAbout && !isFeed && !isToday)}
+      {navLink(`/${base}/coverage`, "Stock news", "📰", isCoverage)}
+      {/* The raw feed is a development tool; it isn't linked in production. */}
+      {process.env.NODE_ENV === "development" && navLink("/feed", "X Feed (dev)", "🐦", isFeed)}
       {navLink("/about", "About", "ℹ️", isAbout)}
 
-      {/* Divider */}
-      <hr
-        className="my-[10px]"
-        style={{ borderColor: "var(--sn-border-subtle)" }}
-      />
+      {/* The ticker selector only does something on the ticker pages, so it shows only there. */}
+      {ticker && (
+        <>
+          {/* Divider */}
+          <hr
+            className="my-[10px]"
+            style={{ borderColor: "var(--sn-border-subtle)" }}
+          />
 
-      {/* Ticker section */}
-      <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--sn-text-tertiary)] px-[6px] pt-1 pb-1 block">
-        Ticker
-      </span>
-      <select
-        value={ticker || ""}
-        onChange={handleTickerChange}
-        className="mx-1 px-2 py-1.5 rounded-[var(--sn-radius-xs)] font-mono text-[12px]
-                   tracking-[0.06em] outline-none cursor-pointer
-                   border transition-colors"
-        style={{
-          background: "var(--sn-surface-2)",
-          color: "var(--sn-text)",
-          borderColor: "var(--sn-border-subtle)",
-        }}
-      >
-        {tickers.map((t) => (
-          <option key={t} value={t}>
-            {t}
-          </option>
-        ))}
-      </select>
+          {/* Ticker section */}
+          <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-[var(--sn-text-tertiary)] px-[6px] pt-1 pb-1 block">
+            Ticker
+          </span>
+          <select
+            value={ticker || ""}
+            onChange={handleTickerChange}
+            className="mx-1 px-2 py-1.5 rounded-[var(--sn-radius-xs)] font-mono text-[12px]
+                       tracking-[0.06em] outline-none cursor-pointer
+                       border transition-colors"
+            style={{
+              background: "var(--sn-surface-2)",
+              color: "var(--sn-text)",
+              borderColor: "var(--sn-border-subtle)",
+            }}
+          >
+            {tickers.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </>
+      )}
     </aside>
     </>
   );

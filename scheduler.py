@@ -16,11 +16,11 @@ from apscheduler.triggers.cron import CronTrigger
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-def run_script(script_path: str):
+def run_script(script_path: str, *args: str):
     """Launch a runner script as a subprocess and stream its output."""
-    print(f"\n[scheduler] Starting: {script_path}", flush=True)
+    print(f"\n[scheduler] Starting: {script_path} {' '.join(args)}".rstrip(), flush=True)
     result = subprocess.run(
-        [sys.executable, script_path],
+        [sys.executable, script_path, *args],
         cwd=BASE_DIR,
     )
     if result.returncode != 0:
@@ -53,6 +53,14 @@ def job_sync_intraday():
     run_script(os.path.join(BASE_DIR, "run_sync_intraday.py"))
 
 
+def job_x_refresh():
+    run_script(os.path.join(BASE_DIR, "run_x_refresh.py"))
+
+
+def job_x_refresh_weekly():
+    run_script(os.path.join(BASE_DIR, "run_x_refresh.py"), "--weekly")
+
+
 if __name__ == "__main__":
     scheduler = BlockingScheduler(timezone="UTC")
 
@@ -75,6 +83,33 @@ if __name__ == "__main__":
     scheduler.add_job(
         job_sync_intraday, CronTrigger.from_crontab("15 21 * * 1-5"), id="sync_intraday"
     )
+
+    # X briefings, in New York time so they follow the market through daylight saving.
+    # Weekdays: 5 minutes after the open, mid-session, and 5 minutes after the close (which
+    # also writes the 7-day briefings). Weekends: once, with the 7-day briefings.
+    # Off unless X_PIPELINE_ENABLED=1, since every run spends a little on Apify and LLMs.
+    if os.environ.get("X_PIPELINE_ENABLED") == "1":
+        ny = "America/New_York"
+        scheduler.add_job(
+            job_x_refresh,
+            CronTrigger(day_of_week="mon-fri", hour="9", minute="35", timezone=ny),
+            id="x_refresh_open",
+        )
+        scheduler.add_job(
+            job_x_refresh,
+            CronTrigger(day_of_week="mon-fri", hour="12", minute="45", timezone=ny),
+            id="x_refresh_midday",
+        )
+        scheduler.add_job(
+            job_x_refresh_weekly,
+            CronTrigger(day_of_week="mon-fri", hour="16", minute="5", timezone=ny),
+            id="x_refresh_close",
+        )
+        scheduler.add_job(
+            job_x_refresh_weekly,
+            CronTrigger(day_of_week="sat,sun", hour="12", minute="0", timezone=ny),
+            id="x_refresh_weekend",
+        )
 
     print("[scheduler] Started. Jobs scheduled:", flush=True)
     for job in scheduler.get_jobs():

@@ -66,6 +66,7 @@ def test_startup_initialises_database(monkeypatch):
         (api.database, "migrate_add_earnings_tables"),
         (api.tc, "init"),
         (api.tclass, "init"),
+        (api.x_store, "init_tables"),
     ]:
         monkeypatch.setattr(module, fn, lambda fn=fn: ran.append(fn))
 
@@ -78,6 +79,7 @@ def test_startup_initialises_database(monkeypatch):
         "migrate_add_earnings_tables",
         "init",
         "init",
+        "init_tables",
     ]
 
 

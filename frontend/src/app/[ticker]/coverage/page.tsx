@@ -101,7 +101,7 @@ export default function CoveragePage() {
 
   // Reflect the active ticker in the browser tab title
   useEffect(() => {
-    if (ticker) document.title = `${ticker} Coverage · NeuralWire`;
+    if (ticker) document.title = `${ticker} News · NeuralWire`;
   }, [ticker]);
 
   // Fetch header for accent + long name
@@ -175,7 +175,7 @@ export default function CoveragePage() {
           News Analysis
         </p>
         <h1 className="font-serif text-[26px] sm:text-[32px] font-bold tracking-[-0.02em] text-[var(--sn-text)] mb-1">
-          {ticker} Coverage
+          {ticker} News
         </h1>
         <p className="text-[14px] text-[var(--sn-text-secondary)] font-light">
           {longName} · AI-scored article feed

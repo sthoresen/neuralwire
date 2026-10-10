@@ -6,7 +6,9 @@ export const metadata: Metadata = {
   title: "About",
 };
 
-const STEPS: { n: string; title: string; body: string }[] = [
+type Step = { n: string; title: string; body: string };
+
+const STEPS: Step[] = [
   {
     n: "01",
     title: "Ingest",
@@ -34,6 +36,56 @@ const STEPS: { n: string; title: string; body: string }[] = [
   },
 ];
 
+const X_STEPS: Step[] = [
+  {
+    n: "01",
+    title: "Follow",
+    body: "A hand-picked list of accounts on X: AI labs and researchers, economists, market strategists and a financial news wire.",
+  },
+  {
+    n: "02",
+    title: "Collect",
+    body: "Three times each trading day, every new original post from those accounts is collected and stored.",
+  },
+  {
+    n: "03",
+    title: "Rank",
+    body: "A small classifier model scores each post for whether it adds something meaningful to a briefing for investors, so jokes, plugs and passing takes sink.",
+  },
+  {
+    n: "04",
+    title: "Write",
+    body: "An LLM writes a short briefing on the last 24 hours and a weekly one on the last 7 days, for AI and for the market backdrop, from the top-ranked posts only.",
+  },
+  {
+    n: "05",
+    title: "Cite",
+    body: "Every statement links to the posts it is based on, and the most notable posts are shown as they were written.",
+  },
+];
+
+function Steps({ steps }: { steps: Step[] }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {steps.map((s) => (
+        <div
+          key={s.n}
+          className="rounded-[var(--sn-radius)] border p-6"
+          style={{ background: "var(--sn-surface)", borderColor: "var(--sn-border-subtle)" }}
+        >
+          <div className="flex items-baseline gap-3 mb-2">
+            <span className="font-mono text-[11px] font-medium" style={{ color: "var(--sn-accent)" }}>
+              {s.n}
+            </span>
+            <span className="font-serif text-[16px] font-medium text-[var(--sn-text)]">{s.title}</span>
+          </div>
+          <p className="text-[13.5px] leading-[1.7] font-light text-[var(--sn-text-secondary)]">{s.body}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function AboutPage() {
   return (
     <>
@@ -57,33 +109,25 @@ export default function AboutPage() {
           AI-powered news intelligence for a curated watchlist of stocks. NeuralWire
           continuously reads financial news, scores and summarizes every article with an
           LLM pipeline, detects significant company events, and writes a fresh research
-          brief for each ticker.
+          brief for each ticker. Alongside that, it publishes a daily briefing on AI and
+          the market backdrop, written from what the people who follow them closely are
+          posting on X.
         </p>
       </div>
 
       {/* How it works */}
       <SectionHeader label="How it works" mt="0" />
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {STEPS.map((s) => (
-          <div
-            key={s.n}
-            className="rounded-[var(--sn-radius)] border p-6"
-            style={{ background: "var(--sn-surface)", borderColor: "var(--sn-border-subtle)" }}
-          >
-            <div className="flex items-baseline gap-3 mb-2">
-              <span className="font-mono text-[11px] font-medium" style={{ color: "var(--sn-accent)" }}>
-                {s.n}
-              </span>
-              <span className="font-serif text-[16px] font-medium text-[var(--sn-text)]">
-                {s.title}
-              </span>
-            </div>
-            <p className="text-[13.5px] leading-[1.7] font-light text-[var(--sn-text-secondary)]">
-              {s.body}
-            </p>
-          </div>
-        ))}
-      </div>
+      <Steps steps={STEPS} />
+
+      {/* The X briefings */}
+      <SectionHeader label="The daily briefings from X" />
+      <p className="max-w-[680px] text-[14px] leading-[1.8] font-light text-[var(--sn-text-secondary)] mb-5">
+        The front page sums up what mattered in AI and in the wider market, in a few minutes of
+        reading. It draws on a small set of well-informed accounts rather than on everything
+        posted, and it is refreshed three times each trading day: after the open, mid-session
+        and after the close.
+      </p>
+      <Steps steps={X_STEPS} />
 
       {/* Why a small watchlist */}
       <SectionHeader label="Why only a handful of tickers" />
@@ -103,7 +147,8 @@ export default function AboutPage() {
         <p className="text-[13.5px] leading-[1.75] font-light text-[var(--sn-text-secondary)]">
           NeuralWire is an early-stage project under active development. Data may be
           incomplete, delayed, or inaccurate, and AI-generated summaries can contain errors.
-          Nothing here is financial advice — do your own research.
+          Nothing here is financial advice — do your own research. Posts shown from X belong
+          to their authors, and each one links back to the original.
         </p>
       </div>
 
