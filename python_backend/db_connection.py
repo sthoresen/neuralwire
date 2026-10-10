@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 import psycopg2
 import psycopg2.extras
 from dotenv import load_dotenv
+from psycopg2.extensions import parse_dsn
 
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
@@ -19,6 +20,14 @@ if _database_url:
     print(f"DB: {urlparse(_database_url).hostname or '?'} (from DATABASE_URL)")
 else:
     print("DB: localhost:5433 (docker-compose default)")
+
+
+LOCAL_DB_HOSTS = {"localhost", "127.0.0.1", "db"}  # "db" is the docker-compose service
+
+
+def is_local_db() -> bool:
+    """True when the configured database is the local docker one, never production."""
+    return parse_dsn(DSN).get("host", "localhost") in LOCAL_DB_HOSTS
 
 
 def get_conn(dict_cursor: bool = False):

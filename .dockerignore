@@ -15,6 +15,7 @@ nvidia ai data
 frontend
 db
 docs
+data
 tests
 **/*.log
 **/*.sql

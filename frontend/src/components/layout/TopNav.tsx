@@ -28,7 +28,9 @@ export default function TopNav() {
   }
 
   const isAbout = pathname === "/about";
-  const pageName = isAbout ? "About" : ticker ? (isCoverage ? "Coverage" : "Screener") : "";
+  const isFeed = pathname === "/feed";
+  const isToday = pathname === "/";
+  const pageName = isAbout ? "About" : isFeed ? "X Feed (dev)" : isToday ? "Latest from X" : ticker ? (isCoverage ? "Stock news" : "Stock dashboard") : "";
 
   return (
     <nav
@@ -72,7 +74,7 @@ export default function TopNav() {
         </span>
       )}
 
-      {/* Ticker badge — shown on Screener only */}
+      {/* Ticker badge, on the stock dashboard only */}
       {!isCoverage && ticker && (
         <span
           className="font-mono text-[12px] font-semibold px-2 py-[3px] rounded-[4px] tracking-[0.05em]"
