@@ -18,7 +18,7 @@ NeuralWire is that page. For each ticker on a curated watchlist, it distills the
 - **Precise context retrieval.** Every article is scored and summarised by a background analysis loop, events are distilled into a timeline, and company history is pre-summarised at several resolutions. Briefs are then written from a compact, SQL-selected slice of that structure: A structured take on RAG, [more below](#context-engineering).
 - **Auditable by design.** Every LLM output is stored with the model and prompt version that produced it, and article metadata is kept apart from heavy scraped text.
 - **Cost efficient, tiered router.** Calls route across an `economy → standard → premium` ladder of models (OpenRouter + xAI Grok), escalating to the next tier when a tier fails. Errors are classified by HTTP status: rate limits and outages are retried with backoff, while providers that are out of credits or deprecated are switched off immediately instead of being retried. ([`llms.py`](python_backend/llms.py))
-- **Production discipline.** 100+ tests, CI on every push, and one Docker image that runs identically on a laptop, in CI and in production — [details below](#engineering-practices).
+- **Production discipline.** 100+ tests. CI on every push. One Docker image that runs the same on a laptop, in CI and in production [details below](#engineering-practices).
 
 ---
 
@@ -98,7 +98,7 @@ PostgreSQL, defined in [database.py](python_backend/database.py) and [market_dat
 
 | Table | Role |
 |---|---|
-| `articles` | Deduped news registry — metadata plus scrape and analysis status |
+| `articles` | News registry: Metadata plus scrape and analysis status |
 | `article_content` | Raw + curated scraped text |
 | `analysis_runs` | Per-article, per-ticker AI scores and summary, with model and prompt IDs |
 | `summaries` | Company history summarised at several resolutions (entire history, multi-year, yearly) |
@@ -122,8 +122,8 @@ PostgreSQL, defined in [database.py](python_backend/database.py) and [market_dat
 
 | Layer | Tools |
 |---|---|
-| **Frontend** | Next.js (App Router, TypeScript), Tailwind CSS — deployed on Vercel |
-| **Backend** | FastAPI (Python 3.13), APScheduler — deployed on Railway as a Docker image |
+| **Frontend** | Next.js (App Router, TypeScript), Tailwind CSS. Deployed on Vercel |
+| **Backend** | FastAPI (Python 3.13), APScheduler. Deployed on Railway as a Docker image |
 | **Database** | PostgreSQL 18 (Railway) |
 | **AI** | xAI Grok (X search), OpenRouter (multi-model routing) |
 | **Data sources** | Alpha Vantage (news), Finnhub (news), Alpaca Markets (prices), defeatbeta (earnings transcripts) |
