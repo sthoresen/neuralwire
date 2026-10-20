@@ -60,7 +60,8 @@ def _format_existing_full(events):
 def _scan_one(ar, existing_summary, llm_manager):
     """
     Asks the cheap model whether a single analysis_run contains a new event.
-    Returns a candidate dict or None.
+    Returns (candidate dict or None, answered). answered is False when no model replied,
+    so the caller can leave the analysis unchecked for the next run.
     """
     prompt = prompts.event_scan_prompt.format(
         ticker=ar["ticker"],
@@ -74,14 +75,18 @@ def _scan_one(ar, existing_summary, llm_manager):
     raw, model_used = llm_manager.call(prompt, tier="economy", reasoning=False, max_tokens=500)
     if not raw:
         print(f"    [scan] LLM unavailable for analysis_run {ar['id']}")
-        return None
+        return None, False
 
     data = utils.clean_json_response(raw)
+    # clean_json_response wraps a lone {...} reply in a list.
+    if isinstance(data, list) and len(data) == 1 and isinstance(data[0], dict):
+        data = data[0]
     if not isinstance(data, dict):
-        return None
+        print(f"    [scan] unreadable reply for analysis_run {ar['id']}: {raw[:80]!r}")
+        return None, True
 
     if not data.get("is_event"):
-        return None
+        return None, True
 
     return {
         "title": data.get("title", "").strip(),
@@ -91,13 +96,14 @@ def _scan_one(ar, existing_summary, llm_manager):
         "source_article_ids": [ar["article_id"]],
         "_analysis_id": ar["id"],
         "_model": model_used,
-    }
+    }, True
 
 
 def run_scan_pass(ticker, analyses, existing_events, llm_manager):
     """
     Runs the cheap scan over all supplied analyses.
-    Returns (candidates, checked_ids).
+    Returns (candidates, checked_ids). An analysis no model replied to is left out of
+    checked_ids, so the next run scans it again.
     """
     existing_summary = _format_existing_short(existing_events)
     candidates = []
@@ -108,7 +114,10 @@ def run_scan_pass(ticker, analyses, existing_events, llm_manager):
 
     for i, ar in enumerate(analyses):
         print(f"  [{i + 1}/{total}] article_id={ar['article_id']} ...", end=" ", flush=True)
-        candidate = _scan_one(ar, existing_summary, llm_manager)
+        candidate, answered = _scan_one(ar, existing_summary, llm_manager)
+        if not answered:
+            print("no reply, left unchecked")
+            continue
         checked_ids.append(ar["id"])
 
         if candidate:
