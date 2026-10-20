@@ -1,0 +1,173 @@
+{"key": "NVDA:10042", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:10167", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:10178", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:10189", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:10562", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:12199", "judge": "claude", "verdict": "skip", "note": "borderline", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:12258", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:12297", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:12370", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:12398", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:12506", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:1268", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:1276", "judge": "claude", "verdict": "skip", "note": "borderline: vague", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:13833", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:14362", "judge": "claude", "verdict": "skip", "note": "dup: Q4 FY26 is on the timeline (Feb 25), misdated", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:14631", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:17297", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:17338", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:17515", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:17620", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:17652", "judge": "claude", "verdict": "skip", "note": "dup Corning", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:17693", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:177", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:17749", "judge": "claude", "verdict": "skip", "note": "$1T orders claim from GTC, misdated", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:17758", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:18091", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:18652", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:19290", "judge": "claude", "verdict": "keep", "note": "Rubin full production", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:19417", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:19429", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:1955", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:19647", "judge": "claude", "verdict": "keep", "note": "Q1 FY27 results", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:19831", "judge": "claude", "verdict": "skip", "note": "dup Korea", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:19980", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:204", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:22223", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:22740", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:2427", "judge": "claude", "verdict": "keep", "note": "China approves H200 purchases", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:24915", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:24926", "judge": "claude", "verdict": "skip", "note": "dup Korea", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:24942", "judge": "claude", "verdict": "skip", "note": "dup Korea", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:24996", "judge": "claude", "verdict": "skip", "note": "borderline: Korea package", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:25040", "judge": "claude", "verdict": "skip", "note": "dup Korea", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:25199", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:25208", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:25232", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:25256", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:25398", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:25875", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:25941", "judge": "claude", "verdict": "skip", "note": "dup Helix", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:25944", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:27733", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:28242", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:28265", "judge": "claude", "verdict": "skip", "note": "dup NEURA", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:29388", "judge": "claude", "verdict": "keep", "note": "first bond sale in 5 years", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:29675", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:30034", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:30312", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:31132", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:31187", "judge": "claude", "verdict": "skip", "note": "Intel stake is Sept 2025, misdated", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:31328", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:31402", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:31722", "judge": "claude", "verdict": "skip", "note": "borderline", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:31845", "judge": "claude", "verdict": "skip", "note": "borderline: only 'considered'", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:32449", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:32693", "judge": "claude", "verdict": "keep", "note": "Rubin full production", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:32737", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:32751", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:32799", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:33119", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:33221", "judge": "claude", "verdict": "skip", "note": "dup Korea", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:33536", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:34315", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:34392", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:34602", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:34888", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:34940", "judge": "claude", "verdict": "skip", "note": "dup of the bond sale, later date", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:35111", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:10+00:00"}
+{"key": "NVDA:35167", "judge": "claude", "verdict": "skip", "note": "Intel stake, misdated, dup", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:36311", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:36719", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:36736", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:36762", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:368", "judge": "claude", "verdict": "skip", "note": "OpenAI deal is Sept 2025, misdated", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:37104", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:37416", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:37451", "judge": "claude", "verdict": "skip", "note": "Intel stake, misdated, dup", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:37470", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:38985", "judge": "claude", "verdict": "skip", "note": "borderline: market-cap milestone", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:39028", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:39345", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:39608", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:45884", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:4915", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:51599", "judge": "claude", "verdict": "skip", "note": "borderline", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:5340", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:5393", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:5598", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:574", "judge": "claude", "verdict": "skip", "note": "dup of the China trip, odd source", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:612", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:61895", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:62056", "judge": "claude", "verdict": "keep", "note": "GTC 2025 roadmap, correctly dated", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:6216", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:7535", "judge": "claude", "verdict": "keep", "note": "enters Windows PC market", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:799", "judge": "claude", "verdict": "skip", "note": "borderline: likely the Dec 2025 Groq deal, misdated", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:8009", "judge": "claude", "verdict": "keep", "note": "Q1 FY27 results", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:8208", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:890", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:937", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:954", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:962", "judge": "claude", "verdict": "keep", "note": "GTC 2026 Vera Rubin", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:9664", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:9742", "judge": "claude", "verdict": "skip", "note": "borderline", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:9901", "judge": "claude", "verdict": "skip", "note": "dup IREN", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:9948", "judge": "claude", "verdict": "skip", "note": "Intel stake is Sept 2025, misdated", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:9981", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:9992", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:9993", "judge": "claude", "verdict": "skip", "note": "dup Marvell", "at": "2026-10-16T13:46:11+00:00"}
+{"key": "NVDA:62056", "judge": "you", "verdict": "keep", "note": "", "at": "2026-10-16T13:54:54+00:00"}
+{"key": "NVDA:2427", "judge": "you", "verdict": "keep", "note": "", "at": "2026-10-16T13:54:54+00:00"}
+{"key": "NVDA:962", "judge": "you", "verdict": "keep", "note": "", "at": "2026-10-16T13:54:54+00:00"}
+{"key": "NVDA:8009", "judge": "you", "verdict": "keep", "note": "", "at": "2026-10-16T13:54:54+00:00"}
+{"key": "NVDA:19647", "judge": "you", "verdict": "keep", "note": "", "at": "2026-10-16T13:54:54+00:00"}
+{"key": "NVDA:19290", "judge": "you", "verdict": "keep", "note": "", "at": "2026-10-16T13:54:54+00:00"}
+{"key": "NVDA:32693", "judge": "you", "verdict": "keep", "note": "", "at": "2026-10-16T13:54:54+00:00"}
+{"key": "NVDA:7535", "judge": "you", "verdict": "keep", "note": "", "at": "2026-10-16T13:54:54+00:00"}
+{"key": "NVDA:29388", "judge": "you", "verdict": "keep", "note": "", "at": "2026-10-16T13:54:54+00:00"}
+{"key": "NVDA:799", "judge": "you", "verdict": "keep", "note": "real event; check the date (likely Dec 2025)", "at": "2026-10-16T13:54:54+00:00"}
+{"key": "NVDA:799", "judge": "you", "verdict": "skip", "note": "date: real event, announced 2025-12-24", "at": "2026-10-16T14:00:09+00:00"}
+{"key": "NVDA:31845", "judge": "you", "verdict": "skip", "note": "only considered", "at": "2026-10-16T14:22:56+00:00"}
+{"key": "NVDA:12199", "judge": "you", "verdict": "skip", "note": "", "at": "2026-10-16T14:22:56+00:00"}
+{"key": "NVDA:1276", "judge": "you", "verdict": "skip", "note": "vague", "at": "2026-10-16T14:22:56+00:00"}
+{"key": "NVDA:31722", "judge": "you", "verdict": "skip", "note": "", "at": "2026-10-16T14:22:56+00:00"}
+{"key": "NVDA:9742", "judge": "you", "verdict": "skip", "note": "", "at": "2026-10-16T14:22:56+00:00"}
+{"key": "NVDA:51599", "judge": "you", "verdict": "skip", "note": "", "at": "2026-10-16T14:22:56+00:00"}
+{"key": "NVDA:38985", "judge": "you", "verdict": "skip", "note": "market-cap milestone", "at": "2026-10-16T14:22:56+00:00"}
+{"key": "NVDA:24996", "judge": "you", "verdict": "skip", "note": "", "at": "2026-10-16T14:22:56+00:00"}
+{"key": "NVDA:12370@2025-12-10", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T14:39:52+00:00"}
+{"key": "NVDA:12398@2025-04-14", "judge": "claude", "verdict": "skip", "note": "borderline: US manufacturing plan, title is off", "at": "2026-10-16T14:39:52+00:00"}
+{"key": "NVDA:12506@2024-03-18", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T14:39:52+00:00"}
+{"key": "NVDA:19301", "judge": "claude", "verdict": "keep", "note": "RTX Spark", "at": "2026-10-16T14:39:52+00:00"}
+{"key": "NVDA:2521@2025-12-08", "judge": "claude", "verdict": "keep", "note": "US allows H200 exports to China", "at": "2026-10-16T14:39:52+00:00"}
+{"key": "NVDA:31187@2025-09-18", "judge": "claude", "verdict": "keep", "note": "Intel stake, right date", "at": "2026-10-16T14:39:52+00:00"}
+{"key": "NVDA:31328@2026-01-01", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T14:39:52+00:00"}
+{"key": "NVDA:31365", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T14:39:52+00:00"}
+{"key": "NVDA:35167@2025-09-18", "judge": "claude", "verdict": "keep", "note": "Intel stake, right date", "at": "2026-10-16T14:39:52+00:00"}
+{"key": "NVDA:368@2025-09-22", "judge": "claude", "verdict": "keep", "note": "OpenAI 10 GW deal, right date; title says $500B, deal was up to $100B", "at": "2026-10-16T14:39:52+00:00"}
+{"key": "NVDA:37451@2025-09-18", "judge": "claude", "verdict": "skip", "note": "dup: same Intel stake, missed by dedup", "at": "2026-10-16T14:39:52+00:00"}
+{"key": "NVDA:38985@2025-10-29", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T14:39:52+00:00"}
+{"key": "NVDA:51599@2026-01-27", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T14:39:52+00:00"}
+{"key": "NVDA:574@2026-05-12", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T14:39:52+00:00"}
+{"key": "NVDA:31187@2025-09-18", "judge": "you", "verdict": "keep", "note": "", "at": "2026-10-16T14:48:01+00:00"}
+{"key": "NVDA:35167@2025-09-18", "judge": "you", "verdict": "keep", "note": "", "at": "2026-10-16T14:48:01+00:00"}
+{"key": "NVDA:37451@2025-09-18", "judge": "you", "verdict": "skip", "note": "dup: Intel stake", "at": "2026-10-16T14:48:01+00:00"}
+{"key": "NVDA:19301", "judge": "you", "verdict": "keep", "note": "same event as NVDA:7535", "at": "2026-10-16T14:48:01+00:00"}
+{"key": "NVDA:38985@2025-10-29", "judge": "you", "verdict": "skip", "note": "borderline", "at": "2026-10-16T14:48:01+00:00"}
+{"key": "NVDA:12398@2025-04-14", "judge": "you", "verdict": "skip", "note": "borderline", "at": "2026-10-16T14:48:01+00:00"}
+{"key": "NVDA:12506@2024-03-18", "judge": "you", "verdict": "skip", "note": "", "at": "2026-10-16T14:48:01+00:00"}
+{"key": "NVDA:61895", "judge": "you", "verdict": "skip", "note": "", "at": "2026-10-16T14:48:01+00:00"}
+{"key": "NVDA:31328@2026-01-01", "judge": "you", "verdict": "skip", "note": "", "at": "2026-10-16T14:48:01+00:00"}
+{"key": "NVDA:51599@2026-01-27", "judge": "you", "verdict": "skip", "note": "", "at": "2026-10-16T14:48:01+00:00"}
+{"key": "NVDA:12370@2025-12-10", "judge": "you", "verdict": "skip", "note": "", "at": "2026-10-16T14:48:01+00:00"}
+{"key": "NVDA:31365", "judge": "you", "verdict": "skip", "note": "", "at": "2026-10-16T14:48:01+00:00"}
+{"key": "NVDA:177", "judge": "you", "verdict": "skip", "note": "", "at": "2026-10-16T14:48:01+00:00"}
+{"key": "NVDA:574@2026-05-12", "judge": "you", "verdict": "skip", "note": "", "at": "2026-10-16T14:48:01+00:00"}
+{"key": "NVDA:4915", "judge": "you", "verdict": "skip", "note": "", "at": "2026-10-16T14:48:01+00:00"}
+{"key": "NVDA:12398@2024-12-05", "judge": "claude", "verdict": "skip", "note": "only talks; verification should have said unconfirmed", "at": "2026-10-16T14:50:54+00:00"}
+{"key": "NVDA:32799@2026-01-06", "judge": "claude", "verdict": "skip", "note": "borderline: Rubin launched at CES, then unveiled again at GTC 2026; one of the two", "at": "2026-10-16T14:50:54+00:00"}
+{"key": "NVDA:31328@2026-01-22", "judge": "claude", "verdict": "skip", "note": "", "at": "2026-10-16T14:50:54+00:00"}
+{"key": "NVDA:14362@2026-02-25", "judge": "claude", "verdict": "skip", "note": "dup: Q4 FY26 is on the timeline", "at": "2026-10-16T14:50:54+00:00"}
+{"key": "NVDA:31328@2026-01-22", "judge": "you", "verdict": "skip", "note": "same event as NVDA:31328@2026-01-01", "at": "2026-10-16T14:50:54+00:00"}
+{"key": "NVDA:17749@2026-03-16", "judge": "claude", "verdict": "skip", "note": "dup: said in the GTC 2026 keynote, same day as the Vera Rubin event", "at": "2026-10-16T15:00:55+00:00"}
+{"key": "NVDA:25945", "judge": "claude", "verdict": "skip", "note": "KKR's fund; NVIDIA is one of several backers", "at": "2026-10-16T15:00:55+00:00"}

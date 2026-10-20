@@ -1,0 +1,15 @@
+{
+  "nvda_2026-03-27_500": {
+    "_about": "Events judged keep on the events review page, each with every analysis in the dataset that reports it. A scan finds an event if it flags at least one of them. 'you' events must all be found; 'claude' events were kept by Claude only and are reported separately.",
+    "gtc_2025": {"by": "you", "title": "GTC 2025: Blackwell Ultra, Vera Rubin and Feynman roadmap", "articles": [62056]},
+    "intel_stake": {"by": "you", "title": "NVIDIA invests $5B in Intel (Sept 2025)", "articles": [31187, 9948, 35167, 37451]},
+    "h200_china_approval": {"by": "you", "title": "China approves H200 purchases (Jan 2026)", "articles": [31913, 31911, 31908, 2445, 31370, 31885, 2427]},
+    "gtc_2026": {"by": "you", "title": "GTC 2026: Vera Rubin unveiled", "articles": [962]},
+    "q1_fy27": {"by": "you", "title": "Q1 FY27 results and $80B buyback", "articles": [19647, 28830, 33731, 20630, 19552, 22761]},
+    "rubin_production": {"by": "you", "title": "Vera Rubin enters full production", "articles": [32693, 19290, 24285, 25363, 24272, 19213, 25403, 24260]},
+    "rtx_spark": {"by": "you", "title": "RTX Spark: NVIDIA enters the Windows PC market", "articles": [19301, 19298, 19272, 32667, 32657, 19202, 32574, 32519, 24272, 19213, 25403, 24260, 24285, 25363]},
+    "bond_sale": {"by": "you", "title": "First bond sale in five years", "articles": [29388, 29747, 32997, 32883, 34942, 34940]},
+    "openai_10gw": {"by": "claude", "title": "OpenAI 10 GW partnership (Sept 2025)", "articles": [368]},
+    "h200_us_exports": {"by": "claude", "title": "US allows H200 exports to China (Dec 2025)", "articles": [2521, 2564, 2496]}
+  }
+}
