@@ -246,6 +246,196 @@ def mark_analyses_event_checked(ids):
         conn.close()
 
 
+def migrate_add_event_candidates():
+    """
+    Creates event_candidates: the analyses the event scan flagged, waiting for their month's
+    selection. status is pending, then selected (event_id is the event it became),
+    not_selected, unconfirmed (verification found no such event), too_old (it happened long
+    before the article, or the article's month is too far back) or repeat.
+    Safe to call multiple times.
+    """
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS event_candidates (
+        id                SERIAL PRIMARY KEY,
+        ticker            TEXT NOT NULL,
+        analysis_run_id   INTEGER NOT NULL UNIQUE,
+        article_id        INTEGER NOT NULL,
+        published_at      TIMESTAMP,
+        month             TEXT NOT NULL,
+        title             TEXT NOT NULL,
+        description       TEXT,
+        event_date        TEXT,
+        event_date_label  TEXT,
+        model_name        TEXT,
+        status            TEXT NOT NULL DEFAULT 'pending',
+        event_id          INTEGER,
+        created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        decided_at        TIMESTAMP
+    )
+    """)
+    c.execute(
+        "CREATE INDEX IF NOT EXISTS event_candidates_ticker_month "
+        "ON event_candidates (ticker, month, status)"
+    )
+    conn.commit()
+    conn.close()
+
+
+def apply_once(name: str, sql: str) -> bool:
+    """
+    Runs a one-time data migration and records it in migrations_applied, in one transaction,
+    so it never runs twice. Returns True if it ran now.
+    """
+    conn = get_conn()
+    c = conn.cursor()
+    try:
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS migrations_applied (
+            name        TEXT PRIMARY KEY,
+            applied_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+        c.execute(
+            "INSERT INTO migrations_applied (name) VALUES (%s) ON CONFLICT DO NOTHING", (name,)
+        )
+        if c.rowcount == 0:
+            conn.rollback()
+            return False
+        c.execute(sql)
+        print(f"[migration] {name}: {c.rowcount} row(s)")
+        conn.commit()
+        return True
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def insert_event_candidate(ticker, candidate):
+    """Stores one flag from the event scan. A second flag for the same analysis is ignored."""
+    conn = get_conn()
+    c = conn.cursor()
+    try:
+        c.execute(
+            """
+            INSERT INTO event_candidates
+                (ticker, analysis_run_id, article_id, published_at, month, title,
+                 description, event_date, event_date_label, model_name)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (analysis_run_id) DO NOTHING
+        """,
+            (
+                ticker,
+                candidate["analysis_run_id"],
+                candidate["article_id"],
+                candidate.get("published_at"),
+                candidate["month"],
+                candidate["title"],
+                candidate.get("description"),
+                candidate.get("event_date"),
+                candidate.get("event_date_label"),
+                candidate.get("model_name"),
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def get_event_candidates_between(ticker, start, end):
+    """Candidates whose article was published between start and end (dates), any status."""
+    conn = get_conn(dict_cursor=True)
+    c = conn.cursor()
+    c.execute(
+        """
+        SELECT title, published_at FROM event_candidates
+        WHERE ticker = %s AND published_at::date BETWEEN %s AND %s
+        ORDER BY published_at
+    """,
+        (ticker, start, end),
+    )
+    rows = [dict(r) for r in c.fetchall()]
+    conn.close()
+    return rows
+
+
+def get_event_months_ready(ticker, current_month):
+    """
+    Months (YYYY-MM) before current_month that have pending candidates and no unchecked
+    analyses published in them, oldest first.
+    """
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute(
+        """
+        SELECT DISTINCT ec.month FROM event_candidates ec
+        WHERE ec.ticker = %s AND ec.status = 'pending' AND ec.month < %s
+          AND NOT EXISTS (
+              SELECT 1 FROM analysis_runs ar JOIN articles a ON ar.article_id = a.id
+              WHERE ar.ticker = ec.ticker
+                AND (ar.event_check_status = 'pending' OR ar.event_check_status IS NULL)
+                AND TO_CHAR(a.published_at, 'YYYY-MM') = ec.month
+          )
+        ORDER BY ec.month
+    """,
+        (ticker, current_month),
+    )
+    months = [r[0] for r in c.fetchall()]
+    conn.close()
+    return months
+
+
+def get_pending_event_candidates(ticker, month):
+    """A month's pending candidates, with the source article's headline."""
+    conn = get_conn(dict_cursor=True)
+    c = conn.cursor()
+    c.execute(
+        """
+        SELECT ec.*, a.headline FROM event_candidates ec
+        JOIN articles a ON ec.article_id = a.id
+        WHERE ec.ticker = %s AND ec.month = %s AND ec.status = 'pending'
+        ORDER BY ec.published_at
+    """,
+        (ticker, month),
+    )
+    rows = [dict(r) for r in c.fetchall()]
+    conn.close()
+    return rows
+
+
+def count_selected_event_candidates(ticker, month):
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute(
+        "SELECT COUNT(*) FROM event_candidates WHERE ticker = %s AND month = %s AND status = 'selected'",
+        (ticker, month),
+    )
+    n = c.fetchone()[0]
+    conn.close()
+    return n
+
+
+def decide_event_candidates(ids, status, event_id=None):
+    if not ids:
+        return
+    conn = get_conn()
+    c = conn.cursor()
+    try:
+        c.execute(
+            """
+            UPDATE event_candidates SET status = %s, event_id = %s, decided_at = CURRENT_TIMESTAMP
+            WHERE id = ANY(%s)
+        """,
+            (status, event_id, list(ids)),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def migrate_add_earnings_tables():
     """
     Standalone migration: creates ticker_events, earnings, earnings_documents,

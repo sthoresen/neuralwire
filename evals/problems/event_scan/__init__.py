@@ -23,6 +23,7 @@ import prompts
 import utils
 from evals import jev
 from evals.problems import events
+from evals.problems.event_scan import retired_prompts
 from evals.store import Run
 
 APPROVED = Path(__file__).parent / "approved.json"
@@ -68,27 +69,11 @@ OR
 {{"is_event": true, "title": "Short factual title (max 10 words)", "event_date": "YYYY-MM-DD", "event_date_label": "Human date label", "description": "Exactly one sentence."}}
 """
 
-# v2 plus memory of recent candidates, and releases for developers only when widely covered
-SCAN_V3 = SCAN_V2.replace(
-    """{existing_events_summary}
-""",
-    """{existing_events_summary}
-
-## Already flagged in the last {memory_days} days (do not flag these again)
-{recent_candidates}
-""",
-).replace(
-    """- talks, reports and rumours""",
-    """- releases for developers and researchers (models, SDKs, toolkits, frameworks), unless they are
-  big enough for sustained coverage in mainstream financial news
-- talks, reports and rumours""",
-)
-assert SCAN_V3.count("{recent_candidates}") == 1 and "SDKs" in SCAN_V3
-
 SCAN_PROMPTS = {
-    "event_scan_prompt": prompts.event_scan_prompt,
+    "event_scan_prompt": retired_prompts.event_scan_v1,  # production's scan until October 2026
     "scan_v2": SCAN_V2,
-    "scan_v3": SCAN_V3,
+    # v2 plus memory of recent candidates, and releases for developers only when widely covered
+    prompts.EVENT_SCAN_PROMPT_ID: prompts.event_scan_prompt,
 }
 
 

@@ -55,7 +55,7 @@ flowchart LR
 |---|---|---|
 | **Fetch** | every 2h | Pull news per ticker (rotating index), dedupe on URL, insert into the registry |
 | **Analyze** | continuous | Drop noise with a regex and a cheap LLM filter on the headline, scrape the full text in parallel, then score and summarise the article for each ticker it affects |
-| **Detect** | every 4h | Two-pass major event detection: A cheap scan proposes candidates, a higher tier validate pass double checks before appending to the event log |
+| **Detect** | every 4h | Event timeline: a cheap scan flags candidate events in new analyses, remembering what it flagged recently. Once a month is over, a standard model picks at most four, each is checked on the web for whether and when it happened, and repeats of the timeline are dropped |
 | **Brief** | weekly / on earnings | Regenerate each ticker's news-flow brief and focal points |
 | **Earnings** | daily | Pull new earnings call transcripts from defeatbeta; a new transcript triggers a brief refresh |
 | **Prices** | after close + on demand | Sync daily and intraday OHLCV bars from Alpaca |
@@ -114,6 +114,7 @@ PostgreSQL, defined in [database.py](python_backend/database.py) and [market_dat
 - **Tests.** 100+ unit and API tests. The LLM router is tested against real OpenRouter error responses taken from production logs.
 - **CI.** Every push runs Ruff (lint and format), the test suite, and a second job that builds the full Docker stack and smoke-tests it end to end ([`ci.yml`](.github/workflows/ci.yml)).
 - **Safe deploys.** Railway only deploys commits that pass CI, and the web service must answer `/health` before it takes traffic, so a version that fails to start never replaces the running one.
+- **Prompts are tested before they ship.** A small [prompt playground](evals/README.md) runs a prompt on several models side by side, with the cost and time of each, and scores yes/no prompts against labelled cases. The event timeline was tuned with it.
 - **One environment everywhere.** The same [`Dockerfile`](Dockerfile) runs locally, in CI and in production, with the Python version pinned in [`.python-version`](.python-version).
 
 ---
@@ -147,6 +148,7 @@ make            # list all commands
 make reset      # delete the local database and start again from the demo seed
 make db-shell   # psql on the local database
 make test       # run the test suite (needs `pip install -r requirements-dev.txt`)
+make eval       # the prompt playground on http://localhost:8770 (needs OPENROUTER_KEY)
 ```
 
 Workers aren't started by default, since they call paid APIs. With keys in `python_backend/.env`, run one against the local database with `docker compose run --rm api python run_analysis.py`. The demo seed is a small read-only sample of production, refreshed with `make seed` (see [`db/pull_demo_seed.sh`](db/pull_demo_seed.sh)).
