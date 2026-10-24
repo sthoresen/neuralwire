@@ -32,9 +32,11 @@ New folder/
 data/
 
 # ── Evals ─────────────────────────────────────────────────────────────────────
-# The LLM cache and the reports written for Claude; datasets fall under data/ above
+# The LLM cache, reports written for Claude, and playground data and runs (often production data)
 evals/.cache/
 evals/reports/
+evals/datasets/
+evals/runs/playground/
 
 # ── Logs ──────────────────────────────────────────────────────────────────────
 *.log

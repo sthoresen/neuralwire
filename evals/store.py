@@ -54,7 +54,8 @@ class Run:
     ):
         stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
         # runs started in the same second (in parallel) need distinct ids
-        setup = hashlib.sha256(json.dumps([models, params], sort_keys=True).encode()).hexdigest()[:6]
+        setup = json.dumps([dataset, models, params], sort_keys=True).encode()
+        setup = hashlib.sha256(setup).hexdigest()[:6]
         self.meta = {
             "type": "run",
             "run_id": f"{stamp}_{variant}_{setup}",
@@ -133,7 +134,10 @@ def load_runs(problem: str) -> list[dict]:
 
 
 def problems() -> list[str]:
-    return sorted(p.name for p in (ROOT / "runs").glob("*") if p.is_dir())
+    """Problems with runs. runs/playground holds the playground's own runs, in another format."""
+    return sorted(
+        p.name for p in (ROOT / "runs").glob("*") if p.is_dir() and any(p.glob("*.jsonl"))
+    )
 
 
 # ── Verdicts and comments ────────────────────────────────────────────────────
@@ -223,6 +227,47 @@ def leaderboard(problem: str) -> list[dict]:
     return sorted(rows, key=best, reverse=True)
 
 
+def _found(text) -> int:
+    """5 from "5/8"."""
+    try:
+        return int(str(text).split("/")[0])
+    except ValueError:
+        return -1
+
+
+def scan_scores() -> list[dict]:
+    """
+    The event_scan runs as one row each: the setup, how many analyses it flagged (fewer is
+    better) and how many of the approved events those cover. Best first: most of your events
+    found, then fewest flags.
+    """
+    comments = load_comments("event_scan")
+    rows = []
+    for r in load_runs("event_scan"):
+        m, p = r["metrics"], r["params"]
+        jev = r["variant"] == "jev"
+        rows.append(
+            {
+                "run_id": r["run_id"],
+                "model": r["models"].get("scan_model") or r["models"].get("model"),
+                "setting": f"threshold {p.get('threshold')}"
+                if jev
+                else f"reasoning {p.get('reasoning', 'off')}",
+                "prompt": r["prompt_id"],
+                "memory_days": p.get("memory_days") or 0,
+                "flagged": m.get("flagged"),
+                "analyses": m.get("analyses"),
+                "found_you": m.get("found_you"),
+                "found_claude": m.get("found_claude"),
+                "missed_you": m.get("missed_you") or [],
+                "cost_usd": r["cost_usd"],
+                "latency_s_mean": r["latency_s_mean"],
+                "comment": comments.get(r["run_id"], ""),
+            }
+        )
+    return sorted(rows, key=lambda r: (-_found(r["found_you"]), r["flagged"] or 0))
+
+
 def _pct(x) -> str:
     return "–" if x is None else f"{x:.0%}"
 
@@ -236,6 +281,9 @@ def write_leaderboard() -> Path:
         "",
     ]
     for problem in problems():
+        if problem == "event_scan":
+            lines += _scan_table()
+            continue
         rows = leaderboard(problem)
         same, both = agreement(load_labels(problem))
         lines += [f"## {problem}", ""]
@@ -262,3 +310,120 @@ def write_leaderboard() -> Path:
     path = ROOT / "leaderboard.md"
     path.write_text("\n".join(lines))
     return path
+
+
+def _scan_table() -> list[str]:
+    lines = [
+        "## event_scan",
+        "",
+        "The pipeline's first, cheap call on 500 NVDA analyses. Fewer flags is better, as long as "
+        "every event you approved is found.",
+        "",
+        "| Model | Setting | Prompt | Memory | Flagged | Your events | Claude's events | Cost | Time/call | Comment |",
+        "|---|---|---|---|---|---|---|---|---|---|",
+    ]
+    for r in scan_scores():
+        memory = f"{r['memory_days']} days" if r["memory_days"] else "none"
+        lines.append(
+            f"| {r['model']} | {r['setting']} | {r['prompt']} | {memory} | {r['flagged']} "
+            f"| {r['found_you']} | {r['found_claude']} | ${r['cost_usd']:.3f} "
+            f"| {r['latency_s_mean'] or 0:.1f} s | {r['comment']} |"
+        )
+    return lines + [""]
+
+
+# ── Terminal ─────────────────────────────────────────────────────────────────
+
+
+def _table(header: list[str], rows: list[list[str]], color: bool, paint=None) -> list[str]:
+    """Aligned columns with a bold header. paint(row, cell index, text) can colour a cell."""
+    widths = [max(len(h), *(len(r[i]) for r in rows)) for i, h in enumerate(header)]
+    bold = (lambda t: f"\033[1m{t}\033[0m") if color else (lambda t: t)
+    out = ["  ".join(bold(h.ljust(w)) for h, w in zip(header, widths, strict=True))]
+    out.append("  ".join("─" * w for w in widths))
+    for r in rows:
+        cells = [c.ljust(w) for c, w in zip(r, widths, strict=True)]
+        if color and paint:
+            cells = [paint(r, i, c) for i, c in enumerate(cells)]
+        out.append("  ".join(cells).rstrip())
+    return out
+
+
+def terminal_leaderboard(color: bool = True) -> str:
+    """The leaderboard as aligned tables for a terminal (leaderboard.md has the same in Markdown)."""
+    green, red, dim = ("\033[32m", "\033[31m", "\033[2m") if color else ("", "", "")
+    reset = "\033[0m" if color else ""
+    lines = []
+    scan = scan_scores()
+    if scan:
+        lines += [
+            f"{green if color else ''}event_scan{reset}  the pipeline's first call on 500 NVDA analyses: "
+            "fewer flags is better, as long as all your events are found",
+            "",
+        ]
+        rows = [
+            [
+                r["model"],
+                r["setting"],
+                r["prompt"],
+                f"{r['memory_days']}d" if r["memory_days"] else "none",
+                str(r["flagged"]),
+                str(r["found_you"]),
+                str(r["found_claude"]),
+                f"${r['cost_usd']:.3f}",
+                f"{r['latency_s_mean'] or 0:.1f}s",
+            ]
+            for r in scan
+        ]
+
+        def paint(row, i, text):
+            if i == 5:
+                whole = row[5].split("/")[0] == row[5].split("/")[-1]
+                return f"{green if whole else red}{text}{reset}"
+            if i in (1, 3, 8):
+                return f"{dim}{text}{reset}"
+            return text
+
+        header = [
+            "Model",
+            "Setting",
+            "Prompt",
+            "Memory",
+            "Flagged",
+            "Your events",
+            "Claude's",
+            "Cost",
+            "Time",
+        ]
+        lines += _table(header, rows, color, paint) + [""]
+
+    for problem in problems():
+        if problem == "event_scan":
+            continue
+        rows = []
+        for r in leaderboard(problem):
+            rows.append(
+                [
+                    r["run_id"][:15],
+                    r["variant"],
+                    str(r["outputs"]),
+                    f"{_pct(r['precision_you'])} ({r['judged_you']})",
+                    f"{_pct(r['precision_claude'])} ({r['judged_claude']})",
+                    _pct(r["recall_pooled"]),
+                    f"${r['cost_usd']:.3f}",
+                    r["dataset"],
+                ]
+            )
+        lines += [f"{green if color else ''}{problem}{reset}  judged outputs, best first", ""]
+        header = [
+            "Run",
+            "Variant",
+            "Outputs",
+            "Precision (you)",
+            "Precision (Claude)",
+            "Pooled recall",
+            "Cost",
+            "Dataset",
+        ]
+        lines += _table(header, rows, color) + [""]
+    return "\n".join(lines)

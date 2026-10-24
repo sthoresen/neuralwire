@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help up down reset logs db-shell test lint fmt seed eval-review
+.PHONY: help up down reset logs db-shell test lint fmt seed eval eval-review
 
 help:  ## List available targets
 	@grep -E '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -31,7 +31,10 @@ lint:  ## Lint and check formatting (what CI runs)
 fmt:  ## Apply lint fixes and formatting
 	ruff check --fix . && ruff format .
 
-eval-review:  ## Open the eval review page (http://localhost:8765)
+eval:  ## Open the prompt playground: test prompts on models (http://localhost:8770)
+	python -m evals playground
+
+eval-review:  ## Open the events eval review page (http://localhost:8765)
 	python -m evals review
 
 seed:  ## Refresh db/init/01-demo-seed.sql from SOURCE_DATABASE_URL (read-only)

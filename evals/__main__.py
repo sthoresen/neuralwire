@@ -2,7 +2,8 @@
 python -m evals export events --ticker NVDA --since 2026-03-27 --limit 500
 python -m evals run events monthly_select --dataset nvda_2026-03-27_500 [--param cap=2] [--model select_model=...]
 python -m evals leaderboard                 rebuild evals/leaderboard.md
-python -m evals review [--port 8765]        the review page, for your verdicts and comments
+python -m evals playground [--port 8770]    paste a prompt, pick models, run and judge (start here)
+python -m evals review [--port 8765]        the review page for the events problem
 python -m evals report events               a blinded report of outputs for Claude to judge
 python -m evals import events FILE          load Claude's verdicts ({key, verdict, note} per line)
 """
@@ -46,7 +47,15 @@ def cmd_run(a):
 
 
 def cmd_leaderboard(a):
-    print(store.write_leaderboard().read_text())
+    path = store.write_leaderboard()
+    print(store.terminal_leaderboard(color=sys.stdout.isatty()))
+    print(f"(also written as Markdown to {path.relative_to(EVALS_DIR.parent)})")
+
+
+def cmd_playground(a):
+    from evals.playground.server import serve
+
+    serve(a.port)
 
 
 def cmd_review(a):
@@ -118,6 +127,8 @@ def main():
     r.add_argument("--param", action="append", metavar="NAME=VALUE", help="e.g. cap=2")
 
     sub.add_parser("leaderboard")
+    pg = sub.add_parser("playground")
+    pg.add_argument("--port", type=int, default=8770)
     v = sub.add_parser("review")
     v.add_argument("--port", type=int, default=8765)
 
@@ -134,6 +145,7 @@ def main():
         "export": cmd_export,
         "run": cmd_run,
         "leaderboard": cmd_leaderboard,
+        "playground": cmd_playground,
         "review": cmd_review,
         "report": cmd_report,
         "import": cmd_import,
