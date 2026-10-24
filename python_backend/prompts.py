@@ -179,70 +179,141 @@ Source: {src} from {url}
 """
 
 
-event_scan_prompt = """
-You are scanning a financial news analysis to identify if it describes a major new event for {ticker} that belongs on a long-term event timeline.
+# ── Event timeline (event_pipeline.py) ────────────────────────────────────────
+# Measured in evals/ (problems events and event_scan), which run these exact strings. When you
+# change one, bump its _ID so eval runs and verdicts stay tied to the text they measured.
 
-## Existing events (do not duplicate these):
+EVENT_SCAN_PROMPT_ID = "scan_v3"
+event_scan_prompt = """
+You are the first filter for {ticker}'s long-term event timeline: the handful of moments an
+investor would mark on a five-year price chart. Most news articles report no such event. Flag
+this one only if it does.
+
+## Existing timeline (do not flag these again)
 {existing_events_summary}
 
-## Article to evaluate:
+## Already flagged in the last {memory_days} days (do not flag these again)
+{recent_candidates}
+
+## Article
 Published:      {published_at}
 Headline:       {headline}
 Impact:         {impact_headline}
 Summary:        {ai_summary}
 
-## Task
-Decide if this article describes a NEW major event not already captured above.
+## Flag it if the article reports one of these, done by {ticker} or done to {ticker}:
+- quarterly or annual results
+- an acquisition, merger, divestment or major investment in another company
+- the launch or unveiling of a major product, platform or architecture
+- a regulatory, legal or export-control action
+- a change of CEO or other top leadership
+- a major financing or capital return: a large bond or equity raise, a buyback, a stock split
+- a deal large enough to change {ticker}'s outlook
 
-The GOLDEN rule: Compare the candidate events with the existing, vetted event_list. Would the event have been accepted in the past?
-   If there are few events (< 3 per quarter), you can add events more freely.
+## Do not flag
+- announcements by partners, customers or suppliers that use, build on or sell {ticker}'s products
+- small partnerships, collaborations, integrations and customer deployments
+- analyst views, price targets, earnings previews, valuation pieces and fund holdings
+- share-price moves, market-value milestones and rankings
+- executive appearances, interviews, trips and statements of intent
+- releases for developers and researchers (models, SDKs, toolkits, frameworks), unless they are
+  big enough for sustained coverage in mainstream financial news
+- talks, reports and rumours that {ticker} has not announced
+- events already on the existing timeline
 
-Qualifies as a major event:
-- Product launches or architecture announcements
-- Acquisitions, mergers, divestitures
-- Earnings surprises (significant beats/misses, not routine coverage)
-- Regulatory actions, export controls, lawsuits
-- Leadership changes
-- Major partnerships or customer wins
-- Macro or geopolitical events with direct company impact
+A later step chooses among the flagged articles, so when an article does report one of the
+events above, flag it even if you are unsure how big it is.
 
-Does NOT qualify:
-- Routine analyst price target changes or upgrades/downgrades
-- Repetitive earnings previews or follow-up commentary
-- General market moves where the company is incidentally mentioned
-- Events clearly already listed above
-
-Respond with JSON only — no other text:
+Respond with JSON only, no other text:
 {{"is_event": false}}
 OR
 {{"is_event": true, "title": "Short factual title (max 10 words)", "event_date": "YYYY-MM-DD", "event_date_label": "Human date label", "description": "Exactly one sentence."}}
 """
 
+EVENT_SELECT_PROMPT_ID = "events_monthly_v3"
+event_select_prompt = """
+You are curating the long-term event timeline for {ticker}: the handful of moments an investor
+would mark on a multi-year price chart.
 
-event_validate_prompt = """
-You are curating a long-term event timeline for {ticker}. A cheap model has scanned recent news and produced candidate events. Your job is to decide which candidates are worth adding.
+Below are the existing timeline and this month's candidate events, which a cheap model flagged
+in individual news articles from {month}. Many candidates are minor, and several may describe
+the same event.
 
-## Current event list:
-{existing_events}
+## Existing timeline
+{existing}
 
-## Candidates to evaluate:
-{candidates_json}
+## Candidates from {month}
+{candidates}
 
-## Rules
+## Choose at most {cap} events
+The cap is a ceiling, not a target. A month with no timeline event is normal: return [] rather
+than promote the best of a weak month.
 
-The GOLDEN rule: Compare the candidate events with the existing, vetted event_list. Would the event have been accepted in the past?
-   If there are few events (< 3 per quarter), you can add events more freely.
+The test: would an investor looking at {ticker}'s five-year price chart want this moment marked?
 
-1. Discard candidates that duplicate or closely overlap with an existing event.
-2. Discard candidates that are not genuinely significant (routine analysis, minor price moves, repetitive commentary).
-3. Merge candidates that describe the same underlying event into one row; union their source_article_ids.
-4. For approved candidates: improve the title and description wording if needed. Descriptions must be exactly one sentence.
-5. Preserve event_date and event_date_label from the candidate unless clearly wrong.
+A timeline event is:
+- something {ticker} did, or something done to {ticker}, with a material effect on its business:
+  quarterly results, an acquisition or divestment, a major product or architecture launch, a
+  regulatory, legal or export action, a leadership change, a major financing or capital return
+  (a large bond or equity raise, a buyback, a stock split), or a deal large enough to change its
+  outlook
+- dated in {month}, not an older event an article mentioned
 
-Return a JSON array of approved events — no other text:
-[{{"title": "...", "event_date": "YYYY-MM-DD", "event_date_label": "...", "description": "...", "source_article_ids": [...]}}]
+Leave out:
+- announcements by partners, customers or competitors where {ticker} plays a supporting role
+- routine product updates, small partnerships and analyst views
+- market-value milestones and rankings (market cap thresholds, "largest" titles)
+- executive appearances, trips, interviews and statements of intent
+- unconfirmed talks and rumours
+- supplier and capacity arrangements, unless they change what {ticker} can sell
+- anything already on the existing timeline, and repeats of the same event among the candidates
 
-If no candidates merit inclusion, return: []
+## Output
+Only a JSON list, most important first, with no other text:
+[{{"id": "c3", "why": "One sentence: what this changed for {ticker}'s business.", "title": "Short factual title, at most 10 words", "event_date": "YYYY-MM-DD", "event_date_label": "Human date label", "description": "Exactly one sentence."}}]
+Return [] if nothing qualifies.
+"""
+
+EVENT_VERIFY_PROMPT_ID = "events_verify_v2"
+event_verify_prompt = """
+You are checking one proposed event for {ticker}'s long-term timeline against the web.
+
+Proposed event: {title}
+Description: {description}
+Found in: "{headline}", published {published}
+
+News articles often mention older events in passing, so the event may have happened long before
+the article. Search for the original announcement.
+
+Answer with:
+- status: "happened" if {ticker} announced it or it demonstrably took place; "unconfirmed" if it
+  is a rumour, a report of plans or talks, something {ticker} only considered, or you cannot
+  find it
+- event_date: the day it was first announced or took place, not when it was reported later
+- precision: "day" if sources give the exact day, "month" if only the month (then event_date is
+  the 1st of that month)
+- event_date_label: "December 24, 2025", or "December 2025" for month precision
+- title: a short factual title, at most 10 words, corrected to match the sources
+- description: exactly one sentence, with names and figures as the sources give them
+- evidence_url: the source that gives the date
+
+Only JSON, with no other text:
+{{"status": "happened", "event_date": "YYYY-MM-DD", "precision": "day", "event_date_label": "...", "title": "...", "description": "...", "evidence_url": "..."}}
+"""
+
+EVENT_SAME_PROMPT_ID = "events_same_v2"
+event_same_prompt = """
+Do these two entries on {ticker}'s timeline describe the same event?
+
+A: {a}
+B: {b}
+
+The same announcement is one event however it is described: one earnings report is one event
+whether an entry quotes its quarterly or its full-year figures. Related but distinct events are
+different: a product unveiled and the same product entering production later, a deal and a
+later expansion of it, results for two different quarters.
+
+Answer with one word: same or different.
 """
 
 

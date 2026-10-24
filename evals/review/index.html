@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eval review · NeuralWire</title>
+<style>
+  :root {
+    --bg: #0a0a0b; --surface: #111113; --surface-2: #18181b; --border: #27272a; --border-subtle: #1e1e21;
+    --text: #fafafa; --text-2: #a1a1aa; --text-3: #71717a; --accent: #76b900; --keep: #22c55e; --skip: #ef4444;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { position: sticky; top: 0; z-index: 10; background: rgba(10,10,11,.92); backdrop-filter: blur(8px);
+           border-bottom: 1px solid var(--border-subtle); padding: 12px 24px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  header h1 { font-size: 16px; margin: 0 8px 0 0; }
+  select, button, input[type=text], textarea { background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
+           border-radius: 6px; padding: 5px 9px; font: inherit; font-size: 13px; }
+  button { cursor: pointer; }
+  button.on { border-color: var(--accent); color: var(--text); }
+  label.toggle { font-size: 13px; color: var(--text-2); display: flex; gap: 6px; align-items: center; cursor: pointer; }
+  .tabs button { border-radius: 6px 6px 0 0; }
+  main { max-width: 900px; margin: 0 auto; padding: 20px 24px 120px; }
+  .progress { font-size: 13px; color: var(--text-2); }
+  .card { background: var(--surface); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 16px 20px; margin-bottom: 10px; }
+  .card.focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .card.keep { border-left: 4px solid var(--keep); }
+  .card.skip { border-left: 4px solid var(--skip); opacity: .75; }
+  .title { font-weight: 600; font-size: 16px; }
+  .meta { font-size: 12px; color: var(--text-3); font-family: ui-monospace, monospace; margin-top: 2px; }
+  .body { color: var(--text-2); margin: 8px 0; }
+  .context { font-size: 13px; color: var(--text-2); border-top: 1px solid var(--border-subtle); padding-top: 8px; margin-top: 8px; }
+  .context div { margin: 2px 0; }
+  .context a { color: var(--text-2); }
+  .context .date { color: var(--text-3); font-family: ui-monospace, monospace; font-size: 12px; margin-right: 6px; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+  .chip { font-size: 11px; font-family: ui-monospace, monospace; color: var(--text-3); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 1px 6px; }
+  .verdict { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+  .verdict.keep { background: rgba(34,197,94,.15); color: var(--keep); }
+  .verdict.skip { background: rgba(239,68,68,.15); color: var(--skip); }
+  .claude { font-size: 12px; color: var(--text-3); }
+  .note { flex: 1; min-width: 200px; }
+  .help { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border-subtle);
+          font-size: 12px; color: var(--text-3); padding: 8px 24px; text-align: center; }
+  kbd { background: var(--surface-2); border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; font-size: 11px; color: var(--text-2); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
+  th { color: var(--text-3); font-weight: 500; }
+  td.num { font-family: ui-monospace, monospace; white-space: nowrap; }
+  td textarea { width: 100%; min-height: 40px; }
+  details { margin-bottom: 16px; color: var(--text-2); font-size: 14px; }
+  details pre { white-space: pre-wrap; font: inherit; }
+  .empty { color: var(--text-3); padding: 40px 0; text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Eval review</h1>
+  <select id="problem"></select>
+  <span class="tabs"><button id="tab-review" class="on">Review</button> <button id="tab-board">Leaderboard</button></span>
+  <select id="run"></select>
+  <label class="toggle"><input type="checkbox" id="unjudged"> Only unjudged</label>
+  <label class="toggle"><input type="checkbox" id="blind" checked> Blind</label>
+  <label class="toggle"><input type="checkbox" id="showClaude"> Show Claude's verdicts</label>
+  <span class="progress" id="progress"></span>
+</header>
+<main id="main"></main>
+<div class="help" id="help">
+  <kbd>↑</kbd> <kbd>↓</kbd> move · <kbd>k</kbd> keep · <kbd>s</kbd> skip · <kbd>u</kbd> clear · <kbd>n</kbd> note · <kbd>Esc</kbd> leave the note field
+</div>
+<script>
+let DATA = null, problem = null, tab = "review", focus = 0;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+async function load() {
+  DATA = (await (await fetch("/api/data")).json()).problems;
+  const names = Object.keys(DATA);
+  problem = problem && DATA[problem] ? problem : names[0];
+  $("problem").innerHTML = names.map((n) => `<option ${n === problem ? "selected" : ""}>${n}</option>`).join("");
+  render();
+}
+
+function visibleItems() {
+  if (!problem) return [];
+  const run = $("run").value;
+  return DATA[problem].items.filter((it) => (!run || it.runs.includes(run)) && (!$("unjudged").checked || !it.labels.you));
+}
+
+function render() {
+  if (!problem) { $("main").innerHTML = `<div class="empty">No runs yet. Start one with python -m evals run ...</div>`; return; }
+  const p = DATA[problem];
+  const current = $("run").value;
+  $("run").innerHTML = `<option value="">All runs</option>` +
+    p.runs.map((r) => `<option value="${esc(r.run_id)}" ${r.run_id === current ? "selected" : ""}>${esc($("blind").checked ? r.run_id.slice(0, 15) : r.run_id)}</option>`).join("");
+  $("run").style.display = tab === "review" ? "" : "none";
+  const judged = p.items.filter((it) => it.labels.you).length;
+  const ag = p.agreement.both ? ` · you and Claude agree on ${p.agreement.same} of ${p.agreement.both}` : "";
+  $("progress").textContent = `${judged} of ${p.items.length} judged by you${ag}`;
+  tab === "review" ? renderReview(p) : renderBoard(p);
+}
+
+function renderReview(p) {
+  const items = visibleItems();
+  focus = Math.min(focus, Math.max(items.length - 1, 0));
+  const blind = $("blind").checked, showClaude = $("showClaude").checked;
+  const cards = items.map((it, i) => {
+    const you = it.labels.you, claude = it.labels.claude;
+    return `<div class="card ${i === focus ? "focus" : ""} ${you ? you.verdict : ""}" data-i="${i}">
+      <div class="title">${esc(it.title)}</div>
+      <div class="meta">${esc(it.meta)}</div>
+      <div class="body">${esc(it.body)}</div>
+      ${it.context.length ? `<div class="context">${it.context.map((c) =>
+        `<div><span class="date">${esc(c.date)}</span>${c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.text)}</a>` : esc(c.text)}</div>`).join("")}</div>` : ""}
+      <div class="row">
+        ${you ? `<span class="verdict ${you.verdict}">${you.verdict}</span>` : ""}
+        <button data-v="keep">Keep</button> <button data-v="skip">Skip</button>
+        <input type="text" class="note" placeholder="note (n)" value="${esc(you?.note)}">
+        ${showClaude && claude ? `<span class="claude">Claude: <span class="verdict ${claude.verdict}">${claude.verdict}</span> ${esc(claude.note)}</span>` : ""}
+        ${blind ? "" : it.runs.map((r) => `<span class="chip">${esc(r)}</span>`).join("")}
+      </div></div>`;
+  }).join("");
+  const rubric = p.rubric ? `<details><summary>Rubric</summary><pre>${esc(p.rubric)}</pre></details>` : "";
+  $("main").innerHTML = rubric + (cards || `<div class="empty">Nothing to show with these filters.</div>`);
+  document.querySelectorAll(".card").forEach((el) => {
+    const i = +el.dataset.i;
+    el.addEventListener("click", (e) => { if (e.target.tagName !== "A" && focus !== i) { focus = i; markFocus(); } });
+    el.querySelectorAll("button[data-v]").forEach((b) => b.addEventListener("click", () => judge(items[i], b.dataset.v)));
+    el.querySelector(".note").addEventListener("change", (e) => judge(items[i], items[i].labels.you?.verdict ?? null, e.target.value));
+  });
+}
+
+function markFocus() {
+  document.querySelectorAll(".card").forEach((el) => el.classList.toggle("focus", +el.dataset.i === focus));
+  document.querySelector(".card.focus")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+
+async function judge(item, verdict, note) {
+  note = note ?? item.labels.you?.note ?? "";
+  await fetch("/api/label", { method: "POST", body: JSON.stringify({ problem, key: item.key, verdict, note }) });
+  if (verdict) item.labels.you = { verdict, note }; else delete item.labels.you;
+  const before = visibleItems().length;
+  if (!$("unjudged").checked) focus += 1;  // move on; with "only unjudged" the next one slides up
+  render();
+  if (visibleItems().length === before || !$("unjudged").checked) markFocus();
+}
+
+function renderBoard(p) {
+  const pct = (x) => (x == null ? "–" : `${Math.round(x * 100)}%`);
+  const rows = [...p.runs].sort((a, b) => (b.precision_you ?? -1) - (a.precision_you ?? -1)).map((r) => `<tr>
+    <td>${esc(r.variant)}<div class="meta">${esc(r.run_id)}</div></td>
+    <td>${Object.entries(r.models).map(([k, v]) => `<div class="meta">${esc(k)}: ${esc(v)}</div>`).join("")}<div class="meta">${esc(r.prompt_id)}</div></td>
+    <td class="num">${r.outputs}</td>
+    <td class="num">${pct(r.precision_you)} <span class="meta">(${r.judged_you})</span></td>
+    <td class="num">${pct(r.precision_claude)} <span class="meta">(${r.judged_claude})</span></td>
+    <td class="num">${pct(r.recall_pooled)}</td>
+    <td class="num">$${(r.cost_usd ?? 0).toFixed(3)}</td>
+    <td class="num">${(r.latency_s_mean ?? 0).toFixed(1)} s</td>
+    <td class="meta">${Object.entries(r.metrics).filter(([, v]) => typeof v !== "object").map(([k, v]) => `${esc(k)}: ${esc(v)}`).join("<br>")}</td>
+    <td><textarea data-run="${esc(r.run_id)}" placeholder="your comment">${esc(r.comment)}</textarea></td></tr>`).join("");
+  $("main").innerHTML = `<table><tr><th>Variant</th><th>Models / prompt</th><th>Outputs</th><th>Precision (you)</th>
+    <th>Precision (Claude)</th><th>Pooled recall</th><th>Cost</th><th>Time/call</th><th>Metrics</th><th>Comment</th></tr>${rows}</table>`;
+  document.querySelectorAll("textarea[data-run]").forEach((t) => t.addEventListener("change", () =>
+    fetch("/api/comment", { method: "POST", body: JSON.stringify({ problem, run_id: t.dataset.run, text: t.value }) })));
+}
+
+document.addEventListener("keydown", (e) => {
+  if (tab !== "review") return;
+  const inNote = e.target.classList?.contains("note");
+  if (inNote) { if (e.key === "Escape" || e.key === "Enter") e.target.blur(); return; }
+  if (["INPUT", "SELECT", "TEXTAREA"].includes(e.target.tagName)) return;
+  const items = visibleItems();
+  if (e.key === "ArrowDown") { focus = Math.min(focus + 1, items.length - 1); markFocus(); e.preventDefault(); }
+  else if (e.key === "ArrowUp") { focus = Math.max(focus - 1, 0); markFocus(); e.preventDefault(); }
+  else if (e.key === "k" && items[focus]) judge(items[focus], "keep");
+  else if (e.key === "s" && items[focus]) judge(items[focus], "skip");
+  else if (e.key === "u" && items[focus]) judge(items[focus], null);
+  else if (e.key === "n") { document.querySelector(".card.focus .note")?.focus(); e.preventDefault(); }
+});
+
+$("problem").addEventListener("change", (e) => { problem = e.target.value; focus = 0; render(); });
+$("run").addEventListener("change", () => { focus = 0; render(); });
+["unjudged", "blind", "showClaude"].forEach((id) => $(id).addEventListener("change", () => { focus = 0; render(); }));
+$("tab-review").addEventListener("click", () => { tab = "review"; $("tab-review").classList.add("on"); $("tab-board").classList.remove("on"); $("help").style.display = ""; render(); });
+$("tab-board").addEventListener("click", () => { tab = "board"; $("tab-board").classList.add("on"); $("tab-review").classList.remove("on"); $("help").style.display = "none"; render(); });
+load();
+</script>
+</body>
+</html>

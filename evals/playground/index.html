@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prompt playground · NeuralWire</title>
+<style>
+  :root {
+    --bg: #0a0a0b; --surface: #111113; --surface-2: #18181b; --border: #27272a; --border-subtle: #1e1e21;
+    --text: #fafafa; --text-2: #a1a1aa; --text-3: #71717a; --accent: #76b900; --yes: #22c55e; --no: #a1a1aa; --unk: #f59e0b; --bad: #ef4444;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { position: sticky; top: 0; z-index: 20; background: rgba(10,10,11,.94); backdrop-filter: blur(8px);
+           border-bottom: 1px solid var(--border-subtle); padding: 10px 20px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  header h1 { font-size: 15px; margin: 0 10px 0 0; }
+  main { padding: 18px 20px 80px; }
+  .narrow { max-width: 920px; margin: 0 auto; }
+  button, select, input, textarea { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font: inherit; font-size: 13px; }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); color: #0a0a0b; border-color: var(--accent); font-weight: 600; }
+  button.on, .tab.on { border-color: var(--accent); }
+  button:disabled { opacity: .5; cursor: default; }
+  textarea { width: 100%; font-family: ui-monospace, monospace; font-size: 12.5px; }
+  label { color: var(--text-2); font-size: 13px; }
+  .card { background: var(--surface); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-3); margin: 0 0 10px; font-weight: 600; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .hint { color: var(--text-3); font-size: 12px; }
+  .chip { display: inline-block; font-size: 11.5px; font-family: ui-monospace, monospace; border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; margin: 2px 3px 2px 0; color: var(--text-2); }
+  .chip.ok { border-color: #2f5e1a; color: var(--accent); }
+  .chip.missing { border-color: #7f1d1d; color: var(--bad); }
+  .models label { display: flex; gap: 8px; align-items: center; margin: 4px 0; color: var(--text); }
+  .models select { padding: 2px 6px; }
+  .progress { height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; flex: 1; min-width: 160px; }
+  .progress div { height: 100%; background: var(--accent); transition: width .3s; }
+  table.grid { border-collapse: separate; border-spacing: 0; width: 100%; }
+  .grid th, .grid td { border-bottom: 1px solid var(--border-subtle); padding: 8px 10px; vertical-align: top; text-align: left; }
+  .grid th { position: sticky; top: 49px; background: var(--surface); z-index: 10; font-weight: 500; font-size: 12.5px; }
+  .grid td.case { width: 28%; min-width: 260px; font-size: 12.5px; color: var(--text-2); }
+  .grid td.case .k { color: var(--text-3); font-family: ui-monospace, monospace; font-size: 11px; }
+  .clip { max-height: 7.5em; overflow: hidden; cursor: pointer; }
+  .clip.open { max-height: none; }
+  .out { font-size: 13px; }
+  .out p { margin: 0 0 .6em; }
+  .out ul { margin: 0 0 .6em; padding-left: 1.2em; }
+  .meta { color: var(--text-3); font-size: 11px; font-family: ui-monospace, monospace; margin-top: 4px; }
+  .badge { font-weight: 700; font-size: 12px; padding: 1px 7px; border-radius: 4px; }
+  .badge.YES { background: rgba(34,197,94,.16); color: var(--yes); }
+  .badge.NO { background: rgba(161,161,170,.12); color: var(--no); }
+  .badge.unk { background: rgba(245,158,11,.15); color: var(--unk); }
+  .wrong { box-shadow: inset 3px 0 0 var(--bad); }
+  .right { box-shadow: inset 3px 0 0 var(--yes); }
+  .thumb { padding: 0 6px; font-size: 13px; background: none; border: 1px solid transparent; }
+  .thumb:hover { border-color: var(--border); }
+  .lab { padding: 1px 8px; font-size: 12px; }
+  .lab.YES.on { background: rgba(34,197,94,.2); border-color: var(--yes); color: var(--yes); }
+  .lab.NO.on { background: rgba(161,161,170,.15); border-color: var(--no); }
+  .score { font-size: 12px; color: var(--text-2); font-family: ui-monospace, monospace; margin-top: 4px; }
+  .err { color: var(--bad); font-size: 12px; }
+  table.hs { border-collapse: collapse; width: 100%; font-size: 13px; }
+  .hs th, .hs td { padding: 7px 9px; border-bottom: 1px solid var(--border-subtle); text-align: left; }
+  .hs th { color: var(--text-3); font-weight: 500; }
+  .num { font-family: ui-monospace, monospace; white-space: nowrap; }
+  .note { width: 100%; margin-top: 6px; font-size: 12px; padding: 3px 7px; }
+  .empty { color: var(--text-3); text-align: center; padding: 40px 0; }
+  .cols { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(340px, 1fr); gap: 12px; overflow-x: auto; padding-bottom: 8px; }
+  .cols .card { margin: 0; }
+  .cols .out { font-size: 13.5px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Prompt playground</h1>
+  <button class="tab on" data-tab="play">Playground</button>
+  <button class="tab" data-tab="setup">Batch: set up</button>
+  <button class="tab" data-tab="results">Batch: results</button>
+  <button class="tab" data-tab="scores">High scores</button>
+  <span class="hint" id="status"></span>
+</header>
+<main>
+
+<section id="tab-play">
+  <div class="narrow">
+    <div class="card">
+      <div class="row" style="margin-bottom:8px">
+        <input id="pName" placeholder="name (optional)" style="flex:1">
+        <select id="pHistory"><option value="">earlier prompts…</option></select>
+      </div>
+      <textarea id="pPrompt" rows="16" placeholder="Paste the full prompt. It is sent exactly as written to every model you tick."></textarea>
+    </div>
+    <div class="card">
+      <h2>Models</h2>
+      <div class="models" id="pModels"></div>
+      <div class="row" style="margin-top:8px">
+        <input id="pCustom" placeholder="another OpenRouter model id" style="width:300px">
+        <button id="pAdd">Add</button>
+        <label>Max output tokens <input id="pMax" type="number" value="2000" style="width:90px"></label>
+      </div>
+    </div>
+    <div class="row" style="margin-bottom:16px">
+      <button class="primary" id="pRun">Run</button>
+      <span id="pEst" class="hint"></span>
+    </div>
+  </div>
+  <div id="pOut" class="cols"></div>
+</section>
+
+<section id="tab-setup" class="narrow" style="display:none">
+  <div class="card">
+    <h2>Cases</h2>
+    <div class="row">
+      <select id="dataset"></select>
+      <label>or upload <input type="file" id="upload" accept=".jsonl,.json,.csv,.txt"></label>
+    </div>
+    <details style="margin-top:10px"><summary class="hint">…or paste a single case</summary>
+      <textarea id="paste" rows="4" placeholder="Becomes a case with one field, {input}"></textarea>
+      <button id="pasteSave" style="margin-top:6px">Use this text</button>
+    </details>
+    <div class="hint" id="columns" style="margin-top:8px"></div>
+    <details id="sampleBox" open style="margin-top:8px; display:none"><summary class="hint">what a case looks like</summary>
+      <pre id="sample" style="white-space:pre-wrap; font-size:12px; color:var(--text-2); background:var(--surface-2); padding:10px; border-radius:6px; max-height:320px; overflow:auto"></pre>
+    </details>
+  </div>
+
+  <div class="card">
+    <h2>Prompt</h2>
+    <div class="row" style="margin-bottom:8px">
+      <input id="pname" placeholder="name this prompt, e.g. scan_v4" style="flex:1">
+      <select id="prod"><option value="">start from a production prompt…</option></select>
+    </div>
+    <textarea id="prompt" rows="14" placeholder="Write {column_name} wherever a case's value goes. JSON examples need no escaping."></textarea>
+    <div id="ph" style="margin-top:8px"></div>
+    <div id="extra"></div>
+  </div>
+
+  <div class="card">
+    <h2>Mode</h2>
+    <div class="row">
+      <label><input type="radio" name="mode" value="writing" checked> Writing: read the outputs side by side</label>
+      <label><input type="radio" name="mode" value="classify"> Classify: YES/NO, scored against your labels</label>
+    </div>
+    <div class="row" id="classifyOpts" style="margin-top:8px; display:none">
+      <label>Answer field <input id="field" placeholder="e.g. is_event (optional)" style="width:220px"></label>
+      <span class="hint">Without one, the first yes/no value in a JSON reply counts, or the reply's first word.</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Models</h2>
+    <div class="models" id="models"></div>
+    <div class="row" style="margin-top:8px">
+      <input id="custom" placeholder="another OpenRouter model id" style="width:300px">
+      <button id="addModel">Add</button>
+      <label>Max output tokens <input id="maxTokens" type="number" value="1000" style="width:90px"></label>
+    </div>
+    <div class="hint" style="margin-top:6px">Reasoning adds up to 4,000 tokens per reply on top of the max.</div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <button class="primary" id="run">Run</button>
+      <span id="estimate" class="hint"></span>
+    </div>
+  </div>
+</section>
+
+<section id="tab-results" style="display:none">
+  <div class="row" style="margin-bottom:12px">
+    <select id="runs"></select>
+    <div class="progress"><div id="bar" style="width:0"></div></div>
+    <span class="hint" id="prog"></span>
+    <button id="cancel" style="display:none">Cancel</button>
+  </div>
+  <div class="row" id="labelTools" style="margin-bottom:12px; display:none">
+    <label>Sort <select id="sort">
+      <option value="review">to review first: disagreements, then any YES</option>
+      <option value="order">file order</option>
+    </select></label>
+    <label><input type="checkbox" id="unlabelled"> unlabelled only</label>
+    <button id="bulkNo">Label NO where every model said NO</button>
+    <span class="hint" id="labelCount"></span>
+  </div>
+  <div id="grid"></div>
+</section>
+
+<section id="tab-scores" style="display:none">
+  <div class="row" style="margin-bottom:12px"><label>Cases <select id="hsData"></select></label></div>
+  <div id="hs"></div>
+</section>
+
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const api = async (path, body) => {
+  const r = await fetch(path, body ? { method: "POST", body: JSON.stringify(body) } : undefined);
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || r.status);
+  return data;
+};
+const money = (x) => x == null ? "?" : x === 0 ? "$0" : x < 0.0001 ? "<$0.0001" : x < 0.01 ? `$${x.toFixed(4)}` : `$${x.toFixed(2)}`;
+
+let SETUP = null, CHECK = null, VIEW = null, poll = null;
+
+// ── Set up ───────────────────────────────────────────────────────────────────
+
+async function loadSetup(select) {
+  SETUP = await api("/api/setup");
+  $("dataset").innerHTML = SETUP.datasets.length
+    ? SETUP.datasets.map((d) => `<option value="${esc(d.name)}">${esc(d.name)} · ${d.rows} cases · ${d.labelled} labelled</option>`).join("")
+    : `<option value="">no cases yet: upload a file</option>`;
+  if (select) $("dataset").value = select;
+  $("prod").innerHTML = `<option value="">start from a production prompt…</option>` +
+    Object.keys(SETUP.prompts).map((k) => `<option>${esc(k)}</option>`).join("");
+  for (const box of ["models", "pModels"]) {
+    const keep = new Set([...$(box).querySelectorAll("input:checked")].map((i) => i.value));
+    $(box).innerHTML = SETUP.models.map((m, i) => modelRow(m, keep.size ? keep.has(m.id) : i === 0)).join("");
+  }
+  check();
+  playEstimate();
+}
+
+function modelRow(m, checked) {
+  const price = m.price_in == null ? "price unknown" : `$${m.price_in.toFixed(2)} / $${m.price_out.toFixed(2)} per M tokens`;
+  return `<label><input type="checkbox" value="${esc(m.id)}" ${checked ? "checked" : ""}>
+    ${esc(m.label || m.id)} <span class="hint">${esc(m.id)} · ${price}</span>
+    <select data-reason="${esc(m.id)}"><option value="off">reasoning off</option><option value="low">reasoning low</option><option value="medium">reasoning medium</option><option value="high">reasoning high</option></select></label>`;
+}
+
+function extraValues() {
+  const out = {};
+  document.querySelectorAll("[data-extra]").forEach((i) => (out[i.dataset.extra] = i.value));
+  return out;
+}
+
+let checkTimer = null;
+function check() { clearTimeout(checkTimer); checkTimer = setTimeout(doCheck, 300); }
+async function doCheck() {
+  const prompt = $("prompt").value, dataset = $("dataset").value;
+  CHECK = await api("/api/placeholders", { prompt, dataset, extra: extraValues() });
+  $("columns").innerHTML = dataset ? `Fields (click to insert): ${CHECK.columns.map((c) => `<span class="chip" data-insert="${esc(c)}" style="cursor:pointer">{${esc(c)}}</span>`).join("")}` : "";
+  $("sampleBox").style.display = CHECK.sample.length ? "" : "none";
+  $("sample").textContent = CHECK.sample.map((r) => JSON.stringify(r, null, 2)).join("\n\n");
+  $("ph").innerHTML = CHECK.placeholders.length
+    ? CHECK.placeholders.map((p) => `<span class="chip ${CHECK.missing.includes(p) ? "missing" : "ok"}">{${esc(p)}}</span>`).join("") +
+      (CHECK.missing.length ? `<div class="hint">Red ones aren't fields of the cases: give them one value for every case below.</div>` : "")
+    : `<span class="hint">No {placeholders}: the prompt is the same for every case, so it runs once per model. Put a {field} in it to run it on every case.</span>`;
+  const old = extraValues();
+  $("extra").innerHTML = CHECK.missing.map((p) =>
+    `<div class="row" style="margin-top:6px"><span class="chip missing">{${esc(p)}}</span><input data-extra="${esc(p)}" value="${esc(old[p] || "")}" style="flex:1"></div>`).join("");
+  estimate();
+}
+
+function chosenModels(box = "models") {
+  return [...$(box).querySelectorAll("input:checked")].map((i) => ({
+    id: i.value, reasoning: $(box).querySelector(`[data-reason="${CSS.escape(i.value)}"]`).value,
+  }));
+}
+
+function estimate() {
+  if (!CHECK) return;
+  const rows = CHECK.calls_per_model || 1, inTok = (CHECK.avg_chars / 4) * rows, maxOut = +$("maxTokens").value * rows;
+  let low = 0, high = 0, unknown = false;
+  for (const m of chosenModels()) {
+    const info = SETUP.models.find((x) => x.id === m.id);
+    if (!info || info.price_in == null) { unknown = true; continue; }
+    const extra = m.reasoning === "off" ? 0 : 4000 * rows;
+    low += (inTok * info.price_in) / 1e6;
+    high += (inTok * info.price_in + (maxOut + extra) * info.price_out) / 1e6;
+  }
+  const n = chosenModels().length;
+  $("estimate").textContent = `${rows} case${rows === 1 ? "" : "s"} × ${n} model${n === 1 ? "" : "s"} = ${rows * n} calls · ` +
+    `≈ ${money(low)} for the prompts, at most ${money(high)} with full-length replies` + (unknown ? " (some prices unknown)" : "") +
+    " · cached calls are free";
+}
+
+$("dataset").addEventListener("change", check);
+$("columns").addEventListener("click", (e) => {  // insert {field} where the cursor is
+  const f = e.target.dataset.insert;
+  if (!f) return;
+  const box = $("prompt"), at = box.selectionStart ?? box.value.length;
+  box.value = box.value.slice(0, at) + `{${f}}` + box.value.slice(box.selectionEnd ?? at);
+  box.focus();
+  box.selectionStart = box.selectionEnd = at + f.length + 2;
+  check();
+});
+$("prompt").addEventListener("input", check);
+$("extra").addEventListener("input", check);
+$("maxTokens").addEventListener("input", estimate);
+$("models").addEventListener("change", estimate);
+$("prod").addEventListener("change", (e) => {
+  if (!e.target.value) return;
+  $("prompt").value = SETUP.prompts[e.target.value];
+  if (!$("pname").value) $("pname").value = e.target.value;
+  check();
+});
+document.querySelectorAll("[name=mode]").forEach((r) => r.addEventListener("change", () =>
+  ($("classifyOpts").style.display = document.querySelector("[name=mode]:checked").value === "classify" ? "" : "none")));
+$("addModel").addEventListener("click", () => {
+  const id = $("custom").value.trim();
+  if (!id) return;
+  SETUP.models.push({ id, label: id, price_in: null, price_out: null });
+  $("models").insertAdjacentHTML("beforeend", modelRow({ id, label: id }, true));
+  $("custom").value = "";
+  estimate();
+});
+$("upload").addEventListener("change", async (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const res = await api("/api/datasets", { name: f.name.replace(/\.[^.]+$/, ""), text: await f.text() });
+  await loadSetup(res.name);
+  $("status").textContent = `Loaded ${res.rows} cases as ${res.name}`;
+});
+$("pasteSave").addEventListener("click", async () => {
+  const text = $("paste").value.trim();
+  if (!text) return;
+  const res = await api("/api/datasets", { name: `pasted-${Date.now()}`, rows: [{ input: text }] });
+  await loadSetup(res.name);
+  if (!$("prompt").value.includes("{input}")) $("prompt").value += (($("prompt").value ? "\n\n" : "") + "{input}");
+  check();
+});
+$("run").addEventListener("click", async () => {
+  const models = chosenModels();
+  if (!$("dataset").value || !$("prompt").value.trim() || !models.length) return alert("Pick cases, write a prompt and choose at least one model.");
+  const { id } = await api("/api/run", {
+    name: $("pname").value || "untitled", dataset: $("dataset").value, prompt: $("prompt").value,
+    extra: extraValues(), mode: document.querySelector("[name=mode]:checked").value,
+    answer_field: $("field").value.trim(), models, max_tokens: +$("maxTokens").value,
+  });
+  showTab("results", false);
+  await loadRuns(id);
+});
+
+// ── Playground ───────────────────────────────────────────────────────────────
+
+let PLAY = null, playPoll = null;
+
+function playEstimate() {
+  if (!SETUP) return;
+  const inTok = $("pPrompt").value.length / 4, maxOut = +$("pMax").value;
+  let low = 0, high = 0, unknown = false;
+  const chosen = chosenModels("pModels");
+  for (const m of chosen) {
+    const info = SETUP.models.find((x) => x.id === m.id);
+    if (!info || info.price_in == null) { unknown = true; continue; }
+    low += (inTok * info.price_in) / 1e6;
+    high += (inTok * info.price_in + (maxOut + (m.reasoning === "off" ? 0 : 4000)) * info.price_out) / 1e6;
+  }
+  $("pEst").textContent = chosen.length
+    ? `${chosen.length} call${chosen.length === 1 ? "" : "s"} · ≈ ${money(low)}–${money(high)}` + (unknown ? " (some prices unknown)" : "")
+    : "tick at least one model";
+}
+
+async function loadPlayHistory(select) {
+  const list = (await api("/api/runs")).filter((r) => r.mode === "playground");
+  $("pHistory").innerHTML = `<option value="">earlier prompts…</option>` + list.map((r) =>
+    `<option value="${esc(r.id)}">${esc(r.created.slice(5, 16).replace("T", " "))} · ${esc(r.name !== "untitled" ? r.name : r.preview)}</option>`).join("");
+  if (select) $("pHistory").value = select;
+}
+
+async function openPlay(id, fill) {
+  clearTimeout(playPoll);
+  history.replaceState(null, "", `#play=${encodeURIComponent(id)}`);
+  PLAY = await api(`/api/runs/${encodeURIComponent(id)}`);
+  if (fill) {  // reopening an earlier prompt: its text, name and models
+    $("pPrompt").value = PLAY.run.prompt;
+    $("pName").value = PLAY.run.name === "untitled" ? "" : PLAY.run.name;
+    $("pMax").value = PLAY.run.max_tokens;
+    $("pModels").querySelectorAll("input").forEach((i) => (i.checked = false));
+    for (const m of PLAY.run.models) {
+      if (!$("pModels").querySelector(`input[value="${CSS.escape(m.id)}"]`)) {
+        $("pModels").insertAdjacentHTML("beforeend", modelRow({ id: m.id, label: m.id }, true));
+      }
+      $("pModels").querySelector(`input[value="${CSS.escape(m.id)}"]`).checked = true;
+      $("pModels").querySelector(`[data-reason="${CSS.escape(m.id)}"]`).value = m.reasoning || "off";
+    }
+    playEstimate();
+  }
+  renderPlay();
+  if (PLAY.run.status === "running") playPoll = setTimeout(() => openPlay(id), 1000);
+  else loadPlayHistory(id);
+}
+
+function renderPlay() {
+  const cards = Object.entries(PLAY.run.columns).map(([key, col]) => {
+    const r = col.results.prompt;
+    const body = col.error ? `<div class="err">${esc(col.error)}</div>`
+      : !r ? `<div class="hint">waiting…</div>`
+      : r.text ? `<div class="out">${markdown(r.text)}</div>` : `<div class="err">no reply</div>`;
+    const meta = r ? `<div class="meta">${money(r.cost_usd)} · ${r.latency_s.toFixed(1)}s · ${r.tokens_out} tokens${r.reasoning_tokens ? ` (${r.reasoning_tokens} reasoning)` : ""}${r.cached ? " · cached" : ""}</div>` : "";
+    return `<div class="card"><h2 style="text-transform:none; letter-spacing:0; color:var(--text)">${esc(col.model)}
+      <span class="hint">reasoning ${esc(col.reasoning)}</span></h2>${body}${meta}</div>`;
+  });
+  $("pOut").innerHTML = cards.join("");
+}
+
+$("pRun").addEventListener("click", async () => {
+  const models = chosenModels("pModels");
+  if (!$("pPrompt").value.trim() || !models.length) return alert("Paste a prompt and tick at least one model.");
+  const { id } = await api("/api/run", {
+    name: $("pName").value || "untitled", prompt: $("pPrompt").value, models, max_tokens: +$("pMax").value,
+  });
+  openPlay(id);
+});
+$("pPrompt").addEventListener("input", playEstimate);
+$("pMax").addEventListener("input", playEstimate);
+$("pModels").addEventListener("change", playEstimate);
+$("pHistory").addEventListener("change", (e) => e.target.value && openPlay(e.target.value, true));
+$("pAdd").addEventListener("click", () => {
+  const id = $("pCustom").value.trim();
+  if (!id) return;
+  if (!SETUP.models.some((m) => m.id === id)) SETUP.models.push({ id, label: id, price_in: null, price_out: null });
+  $("pModels").insertAdjacentHTML("beforeend", modelRow({ id, label: id }, true));
+  $("pCustom").value = "";
+  playEstimate();
+});
+
+// ── Results ──────────────────────────────────────────────────────────────────
+
+async function loadRuns(select) {
+  const list = (await api("/api/runs")).filter((r) => r.mode !== "playground");
+  $("runs").innerHTML = list.length ? list.map((r) =>
+    `<option value="${esc(r.id)}">${esc(r.name)} · ${esc(r.dataset)} · ${r.mode} · ${r.status} · ${esc(r.created.slice(0, 16).replace("T", " "))}</option>`).join("")
+    : `<option value="">no runs yet</option>`;
+  if (select) $("runs").value = select;
+  if ($("runs").value) openRun($("runs").value);
+}
+
+async function openRun(id) {
+  clearTimeout(poll);
+  history.replaceState(null, "", `#run=${encodeURIComponent(id)}`);
+  VIEW = await api(`/api/runs/${encodeURIComponent(id)}`);
+  renderProgress();
+  const typing = document.activeElement?.matches?.("#grid input, #grid textarea");
+  if (!typing) renderGrid();
+  if (VIEW.run.status === "running") poll = setTimeout(() => openRun(id), 1500);
+}
+
+function renderProgress() {
+  const r = VIEW.run, cost = Object.values(VIEW.summary).reduce((a, s) => a + s.cost_usd, 0);
+  $("bar").style.width = `${(100 * r.done) / Math.max(r.total, 1)}%`;
+  $("prog").textContent = `${r.done} / ${r.total} replies · ${money(cost)} · ${r.status}`;
+  $("cancel").style.display = r.status === "running" ? "" : "none";
+  $("labelTools").style.display = r.mode === "classify" ? "" : "none";
+}
+
+function answersFor(c) {
+  return Object.entries(VIEW.run.columns).map(([k, col]) => col.results[c]?.answer).filter(Boolean);
+}
+
+function orderedCases() {
+  let cases = [...VIEW.run.cases];
+  if (VIEW.run.mode !== "classify") return cases;
+  if ($("unlabelled").checked) cases = cases.filter((c) => !VIEW.labels[c]);
+  if ($("sort").value === "review") {
+    const rank = (c) => {
+      const a = answersFor(c);
+      if (new Set(a).size > 1) return 0;   // the models disagree
+      if (a.includes("YES") || a.includes("?")) return 1;
+      return 2;                            // every model said NO
+    };
+    cases.sort((x, y) => rank(x) - rank(y));
+  }
+  return cases;
+}
+
+function markdown(text) {
+  const lines = esc(text).split(/\n/), out = [];
+  let list = false;
+  for (const raw of lines) {
+    const line = raw.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/(^|\s)\*(\S.*?\S)\*(?=\s|$)/g, "$1<i>$2</i>");
+    if (/^\s*[-*•] /.test(raw)) { if (!list) { out.push("<ul>"); list = true; } out.push(`<li>${line.replace(/^\s*[-*•] /, "")}</li>`); continue; }
+    if (list) { out.push("</ul>"); list = false; }
+    if (/^#{1,6} /.test(raw)) out.push(`<p><b>${line.replace(/^#{1,6} /, "")}</b></p>`);
+    else if (line.trim()) out.push(`<p>${line}</p>`);
+  }
+  if (list) out.push("</ul>");
+  return out.join("");
+}
+
+function caseCell(c) {
+  const row = VIEW.rows[c] || {};
+  const fields = Object.entries(row).map(([k, v]) => `<div><span class="k">${esc(k)}</span> ${esc(String(v).slice(0, 600))}</div>`).join("");
+  let labels = "";
+  if (VIEW.run.mode === "classify") {
+    const l = VIEW.labels[c];
+    labels = `<div class="row" style="margin-top:6px"><span class="hint">correct:</span>
+      <button class="lab YES ${l === "YES" ? "on" : ""}" data-label="YES" data-case="${esc(c)}">YES</button>
+      <button class="lab NO ${l === "NO" ? "on" : ""}" data-label="NO" data-case="${esc(c)}">NO</button>
+      ${l ? `<button class="lab" data-label="" data-case="${esc(c)}" title="clear">×</button>` : ""}</div>`;
+  }
+  return `<td class="case"><div class="clip">${fields}</div>${labels}</td>`;
+}
+
+function modelCell(key, c) {
+  const col = VIEW.run.columns[key], r = col.results[c];
+  if (!r) return `<td class="hint">${col.error ? "" : "…"}</td>`;
+  const meta = `<div class="meta">${money(r.cost_usd)} · ${r.latency_s.toFixed(1)}s · ${r.tokens_out} tok${r.reasoning_tokens ? ` (${r.reasoning_tokens} reasoning)` : ""}${r.cached ? " · cached" : ""}</div>`;
+  if (VIEW.run.mode !== "classify") {
+    const note = (VIEW.run.notes[key] || {})[c] || "";
+    return `<td><div class="out">${r.text ? markdown(r.text) : `<span class="err">no reply</span>`}</div>${meta}
+      <input class="note" placeholder="note" data-note="${esc(key)}" data-case="${esc(c)}" value="${esc(note)}"></td>`;
+  }
+  const label = VIEW.labels[c], a = r.answer, mark = label ? (a === label ? "right" : "wrong") : "";
+  return `<td class="${mark}"><span class="badge ${a === "?" ? "unk" : a}">${a}</span>
+    ${a !== "?" ? `<button class="thumb" data-thumb="up" data-answer="${a}" data-case="${esc(c)}" title="this answer is right">👍</button>
+    <button class="thumb" data-thumb="down" data-answer="${a}" data-case="${esc(c)}" title="this answer is wrong">👎</button>` : ""}
+    <details><summary class="hint">reply</summary><div class="out">${markdown(r.text || "")}</div></details>${meta}</td>`;
+}
+
+function header(key) {
+  const col = VIEW.run.columns[key], s = VIEW.summary[key];
+  let score = `<div class="score">${s.replies} replies · ${money(s.cost_usd)} · ${s.latency_s_mean ?? "–"}s per call</div>`;
+  if (VIEW.run.mode === "classify") {
+    const acc = s.accuracy == null ? "–" : `${Math.round(s.accuracy * 100)}%`;
+    score += `<div class="score">YES found <b>${s.yes_found}/${s.yes_total}</b> · false YES <b>${s.false_yes}</b> · accuracy ${acc} (${s.judged} labelled)</div>
+      <button style="margin-top:4px; font-size:12px" data-save="${esc(key)}">Save to high scores</button>`;
+  }
+  return `<th>${esc(col.model)} <span class="hint">reasoning ${esc(col.reasoning)}</span>${col.error ? `<div class="err">${esc(col.error)}</div>` : ""}${score}</th>`;
+}
+
+function renderGrid() {
+  const keys = Object.keys(VIEW.run.columns), cases = orderedCases();
+  const labelled = VIEW.run.cases.filter((c) => VIEW.labels[c]).length;
+  $("labelCount").textContent = `${labelled} of ${VIEW.run.cases.length} cases labelled`;
+  if (!cases.length) { $("grid").innerHTML = `<div class="empty">Nothing to show.</div>`; return; }
+  $("grid").innerHTML = `<table class="grid"><tr><th>Case</th>${keys.map(header).join("")}</tr>` +
+    cases.map((c) => `<tr>${caseCell(c)}${keys.map((k) => modelCell(k, c)).join("")}</tr>`).join("") + `</table>`;
+}
+
+async function setLabels(labels) {
+  VIEW.labels = await api("/api/labels", { dataset: VIEW.run.dataset, labels });
+  VIEW = await api(`/api/runs/${encodeURIComponent(VIEW.run.id)}`);
+  renderGrid();
+}
+
+$("grid").addEventListener("click", async (e) => {
+  const t = e.target;
+  if (t.closest(".clip")) return t.closest(".clip").classList.toggle("open");
+  if (t.dataset.label !== undefined) return setLabels({ [t.dataset.case]: t.dataset.label || null });
+  if (t.dataset.thumb) {
+    const right = t.dataset.thumb === "up", a = t.dataset.answer;
+    return setLabels({ [t.dataset.case]: right ? a : a === "YES" ? "NO" : "YES" });
+  }
+  if (t.dataset.save) {
+    const comment = prompt("A comment for the high score list (optional):", "");
+    if (comment === null) return;
+    await api("/api/highscores", { id: VIEW.run.id, column: t.dataset.save, comment });
+    $("status").textContent = "Saved to high scores";
+  }
+});
+$("grid").addEventListener("change", async (e) => {
+  const t = e.target;
+  if (t.dataset.note) await api("/api/note", { id: VIEW.run.id, column: t.dataset.note, case: t.dataset.case, note: t.value });
+});
+$("runs").addEventListener("change", (e) => openRun(e.target.value));
+$("sort").addEventListener("change", renderGrid);
+$("unlabelled").addEventListener("change", renderGrid);
+$("cancel").addEventListener("click", () => api("/api/cancel", { id: VIEW.run.id }));
+$("bulkNo").addEventListener("click", () => {
+  const todo = {};
+  for (const c of VIEW.run.cases) {
+    const a = answersFor(c);
+    if (!VIEW.labels[c] && a.length === Object.keys(VIEW.run.columns).length && a.every((x) => x === "NO")) todo[c] = "NO";
+  }
+  const n = Object.keys(todo).length;
+  if (n && confirm(`Label ${n} cases NO, where every model said NO? Skim them first if a missed YES matters.`)) setLabels(todo);
+});
+
+// ── High scores ──────────────────────────────────────────────────────────────
+
+async function loadScores() {
+  const all = await api("/api/highscores"), rows = all.playground;
+  const names = [...new Set(rows.map((r) => r.dataset))];
+  const current = $("hsData").value;
+  $("hsData").innerHTML = names.map((n) => `<option ${n === current ? "selected" : ""}>${esc(n)}</option>`).join("");
+  $("hsData").parentElement.style.display = names.length ? "" : "none";
+  const shown = rows.filter((r) => r.dataset === $("hsData").value).sort((a, b) => (b.accuracy ?? -1) - (a.accuracy ?? -1));
+  const playground = shown.length ? `<table class="hs"><tr><th>Prompt</th><th>Model</th><th>YES found</th><th>False YES</th>
+    <th>Accuracy</th><th>Labelled</th><th>Cost</th><th>Time/call</th><th>Comment</th><th>Saved</th></tr>` +
+    shown.map((r) => `<tr><td>${esc(r.prompt_name)} <span class="hint">#${esc(r.prompt_hash)}</span></td>
+      <td>${esc(r.model)} <span class="hint">${esc(r.reasoning)}</span></td>
+      <td class="num">${r.yes_found}/${r.yes_total}</td><td class="num">${r.false_yes}</td>
+      <td class="num">${r.accuracy == null ? "–" : Math.round(r.accuracy * 100) + "%"}</td><td class="num">${r.judged}</td>
+      <td class="num">${money(r.cost_usd)}</td><td class="num">${r.latency_s_mean ?? "–"}s</td>
+      <td>${esc(r.comment)}</td><td class="hint">${esc(r.at.slice(0, 10))}</td></tr>`).join("") + `</table>`
+    : `<div class="hint" style="padding:8px 0 4px">None yet: run a classify batch, label the cases and press "Save to high scores" on a model's column.</div>`;
+  const scan = all.event_scan.length ? `<table class="hs"><tr><th>Model</th><th>Setting</th><th>Prompt</th><th>Memory</th>
+    <th>Flagged</th><th>Your events</th><th>Claude's events</th><th>Cost</th><th>Time/call</th><th>Missed</th></tr>` +
+    all.event_scan.map((r) => `<tr><td>${esc(r.model)}</td><td class="hint">${esc(r.setting)}</td><td>${esc(r.prompt)}</td>
+      <td class="num">${r.memory_days ? r.memory_days + " days" : "none"}</td>
+      <td class="num">${r.flagged} <span class="hint">of ${r.analyses}</span></td>
+      <td class="num">${esc(r.found_you)}</td><td class="num">${esc(r.found_claude)}</td>
+      <td class="num">${money(r.cost_usd)}</td><td class="num">${(r.latency_s_mean ?? 0).toFixed(1)}s</td>
+      <td class="hint">${esc(r.missed_you.join("; "))}</td></tr>`).join("") + `</table>` : "";
+  $("hs").innerHTML = `<div class="card"><h2>Playground: classify runs</h2>${playground}</div>` +
+    (scan ? `<div class="card"><h2>Event scan: models and prompts on 500 NVDA analyses</h2>
+      <div class="hint" style="margin-bottom:8px">Fewer flags is better, as long as every event you approved is found (8/8). From <code>python -m evals run event_scan</code>.</div>${scan}</div>` : "");
+}
+$("hsData").addEventListener("change", loadScores);
+
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+
+function showTab(name, load = true) {
+  document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("on", b.dataset.tab === name));
+  ["play", "setup", "results", "scores"].forEach((t) => ($(`tab-${t}`).style.display = t === name ? "" : "none"));
+  if (name === "results" && !VIEW && load) loadRuns();
+  if (name === "scores") loadScores();
+}
+document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
+loadSetup().then(() => {
+  loadPlayHistory();
+  const m = location.hash.match(/^#(run|play)=(.+)$/);  // a link straight to one run
+  if (m && m[1] === "play") openPlay(decodeURIComponent(m[2]), true);
+  else if (m) { showTab("results", false); loadRuns(decodeURIComponent(m[2])); }
+  else if (location.hash === "#scores") showTab("scores");
+  else if (location.hash === "#batch") showTab("setup");
+});
+</script>
+</body>
+</html>

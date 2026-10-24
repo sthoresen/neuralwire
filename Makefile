@@ -1,9 +1,9 @@
 .DEFAULT_GOAL := help
-.PHONY: help up down reset logs db-shell test lint fmt seed
+.PHONY: help up down reset logs db-shell test lint fmt seed eval eval-review
 
 help:  ## List available targets
 	@grep -E '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) \
-		| awk -F':.*?## ' '{printf "  \033[36m%-9s\033[0m %s\n", $$1, $$2}'
+		| awk -F':.*?## ' '{printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
 up:  ## Start db + API + frontend (http://localhost:3000)
 	docker compose up --build -d --wait
@@ -30,6 +30,12 @@ lint:  ## Lint and check formatting (what CI runs)
 
 fmt:  ## Apply lint fixes and formatting
 	ruff check --fix . && ruff format .
+
+eval:  ## Open the prompt playground: test prompts on models (http://localhost:8770)
+	python -m evals playground
+
+eval-review:  ## Open the events eval review page (http://localhost:8765)
+	python -m evals review
 
 seed:  ## Refresh db/init/01-demo-seed.sql from SOURCE_DATABASE_URL (read-only)
 	db/pull_demo_seed.sh

@@ -31,6 +31,13 @@ nvidia ai data/
 New folder/
 data/
 
+# ── Evals ─────────────────────────────────────────────────────────────────────
+# The LLM cache, reports written for Claude, and playground data and runs (often production data)
+evals/.cache/
+evals/reports/
+evals/datasets/
+evals/runs/playground/
+
 # ── Logs ──────────────────────────────────────────────────────────────────────
 *.log
 
